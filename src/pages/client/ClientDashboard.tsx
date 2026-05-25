@@ -121,7 +121,7 @@ export function ClientDashboard() {
                             <span style={{ fontSize: 'var(--text-body-sm)', color: 'var(--color-on-surface-variant)' }}>{task.category}</span>
                           </td>
                           <td style={{ fontWeight: 600 }}>
-                            {formatCurrency(task.budget)}
+                            {task.budget !== undefined ? formatCurrency(task.budget) : 'Open Budget'}
                           </td>
                           <td>
                             <StatusBadge status={task.status} />

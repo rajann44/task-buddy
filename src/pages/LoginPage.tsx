@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Eye, EyeOff, ChevronRight } from 'lucide-react';
@@ -13,7 +13,6 @@ const DEMO_ACCOUNTS = [
 export function LoginPage() {
   const { currentUser, login } = useAuth();
   const { showToast } = useToast();
-  const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

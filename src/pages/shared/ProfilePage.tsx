@@ -545,8 +545,9 @@ export function ProfilePage() {
                 </div>
                 <div className="card-body" style={{ position: 'relative', paddingTop: 0, paddingBottom: 'var(--space-6)' }}>
                   <div style={{ marginTop: -48, marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-                    <Avatar name={user.name} avatarUrl={user.avatarUrl} size="xl"
-                      style={{ border: '4px solid var(--color-surface-white)', boxShadow: 'var(--shadow-sm)' } as any} />
+                    <div style={{ display: 'inline-flex', borderRadius: '50%', border: '4px solid var(--color-surface-white)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
+                      <Avatar name={user.name} avatarUrl={user.avatarUrl} size="xl" />
+                    </div>
                     
                     {avgRating && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '24px', color: 'var(--color-secondary)' }}>

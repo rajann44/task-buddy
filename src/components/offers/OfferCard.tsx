@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Star, Clock, CheckCircle } from 'lucide-react';
+import { Star, Clock } from 'lucide-react';
 import type { Offer, User, CoTaskerProfile } from '../../types';
 import { StatusBadge } from '../ui/Badge';
 import { Avatar } from '../ui/Avatar';
@@ -23,7 +23,7 @@ export function OfferCard({ offer, onAccept, onWithdraw, viewerRole, showActions
     profileService.getCoTaskerProfile(offer.coTaskerId).then(setProfile);
   }, [offer.coTaskerId]);
 
-  const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
+
 
   return (
     <div className="transaction-row-item" style={{ gridTemplateColumns: '56px 1.5fr 2fr 130px 160px', padding: '16px var(--space-4)' }}>

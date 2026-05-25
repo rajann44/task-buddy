@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, MapPin, Calendar, Clock, Users, CheckCircle, X, Star, Wallet, User } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, CheckCircle, X, Star, Wallet, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext, acceptOfferAction, updateTaskStatusAction, addReviewAction, addNotificationAction } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';

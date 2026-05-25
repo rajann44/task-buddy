@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, TrendingUp, CheckCircle, Clock, DollarSign, ArrowRight, Bell, User, Briefcase } from 'lucide-react';
+import { Star, TrendingUp, CheckCircle, Clock, DollarSign, ArrowRight, Bell, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext } from '../../context/AppContext';
 import { profileService } from '../../services/profileService';

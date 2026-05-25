@@ -1,11 +1,35 @@
+import {
+  Sparkles, Wrench, Hammer, Truck, Paintbrush, Zap,
+  Droplets, Leaf, ShoppingCart, Package, ArrowUp, ClipboardList,
+  Heart, Languages, Camera, Laptop, GraduationCap, Globe,
+  ChefHat, PartyPopper, HelpCircle, Activity
+} from 'lucide-react';
+
 export const TASK_CATEGORIES = [
-  'Moving',
   'Cleaning',
+  'Handy Person',
   'Furniture Assembly',
-  'Painting',
+  'Transport & Removals',
   'Repairs',
+  'Painting',
+  'Electrical',
+  'Plumbing',
+  'Gardening & Plant Care',
+  'Shopping',
   'Delivery',
+  'Packing & Lifting',
+  'Errands',
+  'Pet Care',
+  'Translation',
+  'Photography',
+  'Design',
+  'Tutoring',
+  'Online',
+  'Cooking',
+  'Events',
   'Personal Assistance',
+  'Moving',
+  'Custom / Other',
 ] as const;
 
 export const TASK_STATUSES = [
@@ -36,13 +60,57 @@ export const STATUS_COLORS: Record<string, string> = {
 };
 
 export const CATEGORY_ICONS: Record<string, string> = {
-  'Moving': '📦',
   'Cleaning': '🧹',
+  'Handy Person': '🔧',
   'Furniture Assembly': '🪑',
-  'Painting': '🎨',
+  'Transport & Removals': '🚚',
   'Repairs': '🔧',
-  'Delivery': '🚚',
+  'Painting': '🎨',
+  'Electrical': '⚡',
+  'Plumbing': '🚰',
+  'Gardening & Plant Care': '🏡',
+  'Shopping': '🛒',
+  'Delivery': '📦',
+  'Packing & Lifting': '📦',
+  'Errands': '📋',
+  'Pet Care': '🐱',
+  'Translation': '🌐',
+  'Photography': '📷',
+  'Design': '💻',
+  'Tutoring': '🎓',
+  'Online': '🌐',
+  'Cooking': '🍳',
+  'Events': '🎉',
   'Personal Assistance': '🤝',
+  'Moving': '📦',
+  'Custom / Other': '📋',
+};
+
+export const CATEGORY_LUCIDE_ICONS: Record<string, any> = {
+  'Cleaning': Sparkles,
+  'Handy Person': Wrench,
+  'Furniture Assembly': Hammer,
+  'Transport & Removals': Truck,
+  'Repairs': Wrench,
+  'Painting': Paintbrush,
+  'Electrical': Zap,
+  'Plumbing': Droplets,
+  'Gardening & Plant Care': Leaf,
+  'Shopping': ShoppingCart,
+  'Delivery': Package,
+  'Packing & Lifting': ArrowUp,
+  'Errands': ClipboardList,
+  'Pet Care': Heart,
+  'Translation': Languages,
+  'Photography': Camera,
+  'Design': Laptop,
+  'Tutoring': GraduationCap,
+  'Online': Globe,
+  'Cooking': ChefHat,
+  'Events': PartyPopper,
+  'Personal Assistance': Activity,
+  'Moving': Truck,
+  'Custom / Other': HelpCircle,
 };
 
 export const AUSTRALIAN_CITIES = ['Berlin', 'Hamburg', 'Munich', 'Frankfurt', 'Cologne'];

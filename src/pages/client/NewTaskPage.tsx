@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft, Calendar, Clock, MapPin, Tag, Plus, X, 
-  Check, FileText, DollarSign, Image as ImageIcon, Sparkles 
+  ArrowLeft, Calendar, Clock, MapPin, Plus, X, 
+  Check, FileText, DollarSign, Image as ImageIcon, Sparkles,
+  HelpCircle, MoreHorizontal, Search
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext, createTaskAction } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { Input, Textarea, Select } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
-import { TASK_CATEGORIES, AUSTRALIAN_CITIES } from '../../utils/constants';
+import { TASK_CATEGORIES, AUSTRALIAN_CITIES, CATEGORY_LUCIDE_ICONS } from '../../utils/constants';
+import { Modal } from '../../components/ui/Modal';
 import { generateId, formatCurrency, formatDate } from '../../utils/formatters';
 import type { Task, TaskCategory } from '../../types';
 
@@ -19,6 +21,13 @@ const PRESET_IMAGES = [
   { label: 'Furniture Assembly', url: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=600' },
   { label: 'Painting', url: 'https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=600' },
   { label: 'Repairs & Mounting', url: 'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=600' },
+];
+const POPULAR_CATEGORIES = [
+  'Cleaning',
+  'Handy Person',
+  'Furniture Assembly',
+  'Transport & Removals',
+  'Delivery',
 ];
 
 export function NewTaskPage() {
@@ -50,6 +59,8 @@ export function NewTaskPage() {
   const [customImageMode, setCustomImageMode] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
 
   const update = (key: keyof typeof form) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -353,15 +364,154 @@ export function NewTaskPage() {
                 </div>
               )}
 
-              <Select
-                label="Task Category"
-                value={form.category}
-                onChange={update('category')}
-                error={errors.category}
-                required
-                placeholder="Select matching service category"
-                options={TASK_CATEGORIES.map((c) => ({ value: c, label: c }))}
-              />
+              <div className="form-group">
+                <label className="form-label required">Task Category</label>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
+                  gap: 'var(--space-4) var(--space-2)',
+                  marginTop: '12px'
+                }}>
+                  {(() => {
+                    const isSelectedPopular = form.category ? POPULAR_CATEGORIES.includes(form.category as any) : true;
+                    const displayedCategories = [...POPULAR_CATEGORIES];
+                    if (form.category && !isSelectedPopular) {
+                      displayedCategories.push(form.category);
+                    }
+                    return (
+                      <>
+                        {displayedCategories.map((c) => {
+                          const isSelected = form.category === c;
+                          const IconComponent = CATEGORY_LUCIDE_ICONS[c] || HelpCircle;
+                          return (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => setFormVal('category', c)}
+                              className={`category-grid-item${isSelected ? ' is-selected' : ''}`}
+                            >
+                              <div className="category-icon-circle">
+                                <IconComponent size={24} strokeWidth={1.8} />
+                              </div>
+                              <span className="category-label">
+                                {c}
+                              </span>
+                            </button>
+                          );
+                        })}
+
+                        {/* More Categories Trigger */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCategorySearchQuery(''); // Reset search when opening
+                            setIsCategoryModalOpen(true);
+                          }}
+                          className="category-grid-item"
+                        >
+                          <div className="category-icon-circle">
+                            <MoreHorizontal size={24} strokeWidth={1.8} />
+                          </div>
+                          <span className="category-label">
+                            More...
+                          </span>
+                        </button>
+                      </>
+                    );
+                  })()}
+                </div>
+                {errors.category && (
+                  <span style={{ color: 'var(--color-status-error)', fontSize: '11px', marginTop: '4px' }}>{errors.category}</span>
+                )}
+              </div>
+
+              {/* All Categories Modal Popup */}
+              <Modal
+                isOpen={isCategoryModalOpen}
+                onClose={() => setIsCategoryModalOpen(false)}
+                title="Select Task Category"
+                size="lg"
+              >
+                {/* Search Bar */}
+                <div className="category-search-container">
+                  <input
+                    type="text"
+                    className="category-search-input"
+                    placeholder="Search categories (e.g. painting, cleaning...)"
+                    value={categorySearchQuery}
+                    onChange={(e) => setCategorySearchQuery(e.target.value)}
+                    autoFocus
+                  />
+                  {categorySearchQuery ? (
+                    <div 
+                      className="category-search-icon" 
+                      onClick={() => setCategorySearchQuery('')}
+                      role="button"
+                      aria-label="Clear search"
+                    >
+                      <X size={16} />
+                    </div>
+                  ) : (
+                    <div className="category-search-icon" style={{ cursor: 'default', pointerEvents: 'none' }}>
+                      <Search size={16} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Grid */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
+                  gap: 'var(--space-4) var(--space-2)',
+                  maxHeight: '340px',
+                  overflowY: 'auto',
+                  padding: 'var(--space-2)'
+                }}>
+                  {(() => {
+                    const filtered = TASK_CATEGORIES.filter((c) =>
+                      c.toLowerCase().includes(categorySearchQuery.toLowerCase())
+                    );
+                    
+                    if (filtered.length === 0) {
+                      return (
+                        <div style={{
+                          gridColumn: '1 / -1',
+                          textAlign: 'center',
+                          padding: 'var(--space-8) 0',
+                          color: 'var(--color-on-surface-variant)',
+                          fontSize: 'var(--text-body-sm)'
+                        }}>
+                          <HelpCircle size={32} style={{ color: 'var(--color-outline)', marginBottom: '8px', opacity: 0.7 }} />
+                          <div>No categories matching "{categorySearchQuery}"</div>
+                        </div>
+                      );
+                    }
+
+                    return filtered.map((c) => {
+                      const isSelected = form.category === c;
+                      const IconComponent = CATEGORY_LUCIDE_ICONS[c] || HelpCircle;
+                      return (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => {
+                            setFormVal('category', c);
+                            setIsCategoryModalOpen(false);
+                          }}
+                          className={`category-grid-item${isSelected ? ' is-selected' : ''}`}
+                        >
+                          <div className="category-icon-circle">
+                            <IconComponent size={24} strokeWidth={1.8} />
+                          </div>
+                          <span className="category-label">
+                            {c}
+                          </span>
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+              </Modal>
 
               {/* Must-Haves Builder */}
               <div className="form-group">
@@ -369,7 +519,7 @@ export function NewTaskPage() {
                   <Sparkles size={14} style={{ color: 'var(--color-secondary-mid)' }} />
                   Must-Haves & Requirements (Optional)
                 </label>
-                <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                   <input
                     type="text"
                     className="form-control"
@@ -377,19 +527,89 @@ export function NewTaskPage() {
                     value={newMustHave}
                     onChange={(e) => setNewMustHave(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addMustHave())}
+                    style={{ flex: 1 }}
                   />
-                  <button type="button" onClick={addMustHave} className="btn btn-outline" style={{ whiteSpace: 'nowrap' }}>
-                    <Plus size={16} /> Add
+                  <button
+                    type="button"
+                    onClick={addMustHave}
+                    className="btn btn-secondary btn-sm"
+                    style={{
+                      whiteSpace: 'nowrap',
+                      padding: '10px 16px',
+                      borderRadius: 'var(--radius-full)'
+                    }}
+                  >
+                    <Plus size={14} /> Add
                   </button>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {form.mustHaves.map((m, idx) => (
-                    <span key={idx} className="chip" style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px' }}>
-                      {m}
-                      <X size={12} style={{ cursor: 'pointer', color: 'var(--color-status-error)' }} onClick={() => removeMustHave(idx)} />
-                    </span>
-                  ))}
-                </div>
+                
+                {form.mustHaves.length > 0 && (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 'var(--space-2)',
+                    marginTop: '12px'
+                  }}>
+                    {form.mustHaves.map((m, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px var(--space-4)',
+                          background: 'var(--color-surface-container-low)',
+                          border: '1px solid var(--color-outline-variant)',
+                          borderRadius: 'var(--radius)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                          <div
+                            className="transaction-initials-badge"
+                            style={{
+                              width: '24px',
+                              height: '24px',
+                              fontSize: '10px',
+                              flexShrink: 0,
+                              background: 'var(--color-primary-container)',
+                              borderColor: 'var(--color-outline-variant)',
+                              color: 'var(--color-secondary)'
+                            }}
+                          >
+                            ✓
+                          </div>
+                          <span style={{ fontSize: 'var(--text-body-sm)', color: 'var(--color-on-surface)', fontWeight: 500 }}>
+                            {m}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeMustHave(idx)}
+                          style={{
+                            color: 'var(--color-on-surface-variant)',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            borderRadius: '50%',
+                            transition: 'all var(--transition-fast)'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = 'var(--color-status-error)';
+                            e.currentTarget.style.background = 'rgba(211,47,47,0.08)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = 'var(--color-on-surface-variant)';
+                            e.currentTarget.style.background = 'none';
+                          }}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Mock Image Upload */}
@@ -438,7 +658,7 @@ export function NewTaskPage() {
                             {img.label}
                           </div>
                           {form.imageUrl === img.url && (
-                            <div style={{ position: 'absolute', top: 4, right: 4, background: 'var(--color-primary)', color: 'var(--color-on-primary)', borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifycontent: 'center' }}>
+                            <div style={{ position: 'absolute', top: 4, right: 4, background: 'var(--color-primary)', color: 'var(--color-on-primary)', borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <Check size={10} />
                             </div>
                           )}
@@ -532,7 +752,7 @@ export function NewTaskPage() {
 
             </div>
             <div className="card-footer" style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-4) var(--space-6)' }}>
-              <Button type="button" variant="outline" onClick={handleBack}>
+              <Button type="button" variant="outlined" onClick={handleBack}>
                 Back
               </Button>
               <Button type="button" variant="primary" onClick={handleNext}>
@@ -612,7 +832,7 @@ export function NewTaskPage() {
 
             </div>
             <div className="card-footer" style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-4) var(--space-6)' }}>
-              <Button type="button" variant="outline" onClick={handleBack}>
+              <Button type="button" variant="outlined" onClick={handleBack}>
                 Back
               </Button>
               <Button type="button" variant="primary" onClick={handleNext}>
@@ -734,7 +954,7 @@ export function NewTaskPage() {
 
               </div>
               <div className="card-footer" style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-4) var(--space-6)' }}>
-                <Button type="button" variant="outline" onClick={handleBack} disabled={isLoading}>
+                <Button type="button" variant="outlined" onClick={handleBack} disabled={isLoading}>
                   Back
                 </Button>
                 <Button type="submit" variant="primary" size="lg" isLoading={isLoading} style={{ minWidth: '150px' }}>

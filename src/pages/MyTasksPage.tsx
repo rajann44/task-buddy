@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Briefcase, Star, ArrowRight, Wallet, TrendingUp } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -132,7 +131,7 @@ export function MyTasksPage() {
               {/* Promo Card 2: Security & Verification (Light Spec) */}
               <div className="bento-col-4 promo-card-light" style={{ minHeight: '260px' }}>
                 <div>
-                  <div style={{ width: '36px', height: '36px', background: 'rgba(0,46,60,0.06)', borderRadius: 'var(--radius)', display: 'flex', alignItems: 'center', justifycontent: 'center', marginbottom: '12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
+                  <div style={{ width: '36px', height: '36px', background: 'rgba(0,46,60,0.06)', borderRadius: 'var(--radius)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
                     <Star size={18} style={{ color: 'var(--color-secondary)' }} />
                   </div>
                   <h3 className="text-headline-sm" style={{ margin: '0 0 8px 0', color: 'var(--color-secondary)', fontSize: '16px', fontWeight: 700 }}>Verified Status</h3>
@@ -225,7 +224,7 @@ export function MyTasksPage() {
                     <Link key={task.id} to={`/tasks/${task.id}`} style={{ textDecoration: 'none' }}>
                       <div className="card card-hover">
                         <div className="card-body" style={{ padding: 'var(--space-4)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifycontent: 'space-between', gap: 'var(--space-4)', display: 'flex', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-4)' }}>
                             <div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: '4px' }}>
                                 <span className="section-label" style={{ margin: 0, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -277,7 +276,7 @@ export function MyTasksPage() {
                     <Link key={task.id} to={`/tasks/${task.id}`} style={{ textDecoration: 'none' }}>
                       <div className="card card-hover">
                         <div className="card-body" style={{ padding: 'var(--space-4)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifycontent: 'space-between', gap: 'var(--space-4)', display: 'flex', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-4)' }}>
                             <div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: '4px' }}>
                                 <span className="section-label" style={{ margin: 0, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -365,7 +364,7 @@ export function MyTasksPage() {
                       <Link key={task.id} to={`/tasks/${task.id}`} style={{ textDecoration: 'none' }}>
                         <div className="card card-hover">
                           <div className="card-body" style={{ padding: 'var(--space-4)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifycontent: 'space-between', gap: 'var(--space-4)', display: 'flex', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-4)' }}>
                               <div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: '8px', flexWrap: 'wrap' }}>
                                   <span className="section-label" style={{ margin: 0, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -422,7 +421,7 @@ export function MyTasksPage() {
                     return (
                       <div key={offer.id} className="card">
                         <div className="card-body" style={{ padding: 'var(--space-4)' }}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', justifycontent: 'space-between', gap: 'var(--space-4)', display: 'flex', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)' }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: '8px', flexWrap: 'wrap' }}>
                                 <span className="section-label" style={{ margin: 0, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -446,7 +445,7 @@ export function MyTasksPage() {
                               </div>
                             </div>
                           </div>
-                          <div style={{ display: 'flex', justifycontent: 'space-between', alignItems: 'center', marginTop: 'var(--space-4)', borderTop: '1px solid var(--color-surface-container-highest)', paddingTop: 'var(--space-3)', display: 'flex', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-4)', borderTop: '1px solid var(--color-surface-container-highest)', paddingTop: 'var(--space-3)' }}>
                             <span style={{ fontSize: 'var(--text-label-md)', color: 'var(--color-on-surface-variant)' }}>
                               SUBMITTED {formatRelativeTime(offer.createdAt)}
                             </span>

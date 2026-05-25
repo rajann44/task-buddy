@@ -49,13 +49,30 @@ export interface CoTaskerProfile {
 // ─── Tasks ──────────────────────────────────────────────────────────────────
 
 export type TaskCategory =
-  | 'Moving'
   | 'Cleaning'
+  | 'Handy Person'
   | 'Furniture Assembly'
-  | 'Painting'
+  | 'Transport & Removals'
   | 'Repairs'
+  | 'Painting'
+  | 'Electrical'
+  | 'Plumbing'
+  | 'Gardening & Plant Care'
+  | 'Shopping'
   | 'Delivery'
-  | 'Personal Assistance';
+  | 'Packing & Lifting'
+  | 'Errands'
+  | 'Pet Care'
+  | 'Translation'
+  | 'Photography'
+  | 'Design'
+  | 'Tutoring'
+  | 'Online'
+  | 'Cooking'
+  | 'Events'
+  | 'Personal Assistance'
+  | 'Moving'
+  | 'Custom / Other';
 
 export type TaskStatus =
   | 'open'
