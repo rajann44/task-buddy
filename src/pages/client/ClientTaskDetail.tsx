@@ -11,7 +11,7 @@ import { Avatar } from '../../components/ui/Avatar';
 import { profileService } from '../../services/profileService';
 import { formatDate, formatCurrency, generateId } from '../../utils/formatters';
 import { CATEGORY_ICONS } from '../../utils/constants';
-import type { Offer, User, Review } from '../../types';
+import type { Offer, User as UserType, Review } from '../../types';
 
 export function ClientTaskDetail() {
   const { id } = useParams<{ id: string }>();
@@ -24,7 +24,7 @@ export function ClientTaskDetail() {
   const offers = state.offers.filter((o) => o.taskId === id);
   const acceptedOffer = offers.find((o) => o.status === 'accepted');
 
-  const [assignedUser, setAssignedUser] = useState<User | null>(null);
+  const [assignedUser, setAssignedUser] = useState<UserType | null>(null);
   const [acceptConfirm, setAcceptConfirm] = useState<Offer | null>(null);
   const [cancelConfirm, setCancelConfirm] = useState(false);
   const [completeConfirm, setCompleteConfirm] = useState(false);
