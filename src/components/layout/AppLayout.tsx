@@ -46,9 +46,6 @@ export function AppLayout() {
             width: var(--sidebar-width);
             flex-shrink: 0;
           }
-          main {
-            margin-left: var(--sidebar-width);
-          }
           .mobile-nav-container {
             display: none;
           }
