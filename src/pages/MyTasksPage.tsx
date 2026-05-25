@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, ClipboardList, Briefcase, Star, Search, Clock, ArrowRight, DollarSign } from 'lucide-react';
+import { Plus, Briefcase, Star, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useAppContext } from '../context/AppContext';
 import { StatusBadge } from '../components/ui/Badge';
@@ -19,11 +19,14 @@ export function MyTasksPage() {
   const bookedTasks = clientTasks.filter((t) => t.status === 'assigned' || t.status === 'in_progress');
   const completedTasks = clientTasks.filter((t) => t.status === 'completed' || t.status === 'cancelled');
 
+  const totalEscrow = state.walletTransactions
+    .filter((w) => w.clientId === currentUser?.id && w.status === 'reserved')
+    .reduce((sum, w) => sum + w.amount, 0);
+
   // ── Co-Tasker Calculations ──
   const myOffers = state.offers
     .filter((o) => o.coTaskerId === currentUser?.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const pendingOffers = myOffers.filter((o) => o.status === 'pending');
 
   const myAssignedTasks = state.tasks
     .filter((t) => t.assignedCoTaskerId === currentUser?.id)
@@ -77,6 +80,117 @@ export function MyTasksPage() {
           </button>
         </div>
 
+        {/* Commerzbank Bento Grid (Startpage SPEC) */}
+        <div className="bento-grid" style={{ marginBottom: 'var(--space-8)' }}>
+          {activeTab === 'client' ? (
+            <>
+              {/* GiroKonto styled Escrow Card */}
+              <div className="bento-col-4 card" style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '260px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="diamond-logo-wrap">
+                    <div className="diamond-logo-inner"></div>
+                  </div>
+                  <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--color-on-surface-variant)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>GiroKonto Style</span>
+                </div>
+                <div>
+                  <h3 className="text-headline-md" style={{ color: 'var(--color-secondary)', margin: '0 0 4px 0', fontSize: '18px', fontWeight: 700 }}>Task Deposits (Escrow)</h3>
+                  <p style={{ fontSize: 'var(--text-body-sm)', color: 'var(--color-on-surface-variant)', margin: 0 }}>{currentUser?.name}</p>
+                </div>
+                <div style={{ marginTop: '16px' }}>
+                  <div style={{ fontFamily: 'var(--font-headline)', fontSize: '32px', fontWeight: 700, color: 'var(--color-secondary)', lineHeight: 1.1 }}>
+                    {formatCurrency(totalEscrow)}
+                  </div>
+                  <div className="text-label" style={{ fontSize: '9px', color: 'var(--color-status-success)', marginTop: '4px', fontWeight: 700 }}>
+                    Active Escrow Funds
+                  </div>
+                </div>
+              </div>
+
+              {/* Promo Card 1: Explore Services (Dark Spec) */}
+              <div className="bento-col-4 promo-card-dark" style={{ minHeight: '260px' }}>
+                <div>
+                  <h3 className="text-headline-sm" style={{ margin: '0 0 8px 0', color: '#ffffff', fontSize: '16px', fontWeight: 700 }}>Explore Services</h3>
+                  <p style={{ fontSize: 'var(--text-body-sm)', opacity: 0.85, lineHeight: '18px', margin: 0 }}>
+                    Browse open listings to see what other clients are posting, or check out available service categories.
+                  </p>
+                </div>
+                <Link to="/browse" className="promo-card-btn-gold" style={{ fontSize: '11px', padding: '6px 14px' }}>
+                  Browse Marketplace →
+                </Link>
+              </div>
+
+              {/* Promo Card 2: Security & Verification (Light Spec) */}
+              <div className="bento-col-4 promo-card-light" style={{ minHeight: '260px' }}>
+                <div>
+                  <div style={{ width: '36px', height: '36px', background: 'rgba(0,46,60,0.06)', borderRadius: 'var(--radius)', display: 'flex', alignItems: 'center', justifycontent: 'center', marginbottom: '12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
+                    <Star size={18} style={{ color: 'var(--color-secondary)' }} />
+                  </div>
+                  <h3 className="text-headline-sm" style={{ margin: '0 0 8px 0', color: 'var(--color-secondary)', fontSize: '16px', fontWeight: 700 }}>Verified Status</h3>
+                  <p style={{ fontSize: 'var(--text-body-sm)', color: 'var(--color-on-surface-variant)', lineHeight: '18px', margin: 0 }}>
+                    Keep your profile trust rating high. Verify your email, phone, and complete your checklist profile.
+                  </p>
+                </div>
+                <Link to={`/profile/${currentUser?.id}`} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700, fontSize: 'var(--text-body-sm)', color: 'var(--color-secondary)' }}>
+                  Go to Profile →
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* GiroKonto styled Earnings Card */}
+              <div className="bento-col-4 card" style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '260px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="diamond-logo-wrap">
+                    <div className="diamond-logo-inner"></div>
+                  </div>
+                  <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--color-on-surface-variant)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>GiroKonto Style</span>
+                </div>
+                <div>
+                  <h3 className="text-headline-md" style={{ color: 'var(--color-secondary)', margin: '0 0 4px 0', fontSize: '18px', fontWeight: 700 }}>Released Earnings</h3>
+                  <p style={{ fontSize: 'var(--text-body-sm)', color: 'var(--color-on-surface-variant)', margin: 0 }}>{currentUser?.name}</p>
+                </div>
+                <div style={{ marginTop: '16px' }}>
+                  <div style={{ fontFamily: 'var(--font-headline)', fontSize: '32px', fontWeight: 700, color: 'var(--color-secondary)', lineHeight: 1.1 }}>
+                    {formatCurrency(totalEarned)}
+                  </div>
+                  <div className="text-label" style={{ fontSize: '9px', color: 'var(--color-status-success)', marginTop: '4px', fontWeight: 700 }}>
+                    Total Released Balance
+                  </div>
+                </div>
+              </div>
+
+              {/* Promo Card 1: Find Available Work (Dark Spec) */}
+              <div className="bento-col-4 promo-card-dark" style={{ minHeight: '260px' }}>
+                <div>
+                  <h3 className="text-headline-sm" style={{ margin: '0 0 8px 0', color: '#ffffff', fontSize: '16px', fontWeight: 700 }}>Find Available Work</h3>
+                  <p style={{ fontSize: 'var(--text-body-sm)', opacity: 0.85, lineHeight: '18px', margin: 0 }}>
+                    Review recent postings in your category and submit offers with your estimated effort to start earning.
+                  </p>
+                </div>
+                <Link to="/browse" className="promo-card-btn-gold" style={{ fontSize: '11px', padding: '6px 14px' }}>
+                  Browse Tasks →
+                </Link>
+              </div>
+
+              {/* Promo Card 2: Profile Rating (Light Spec) */}
+              <div className="bento-col-4 promo-card-light" style={{ minHeight: '260px' }}>
+                <div>
+                  <div style={{ width: '36px', height: '36px', background: 'rgba(0,46,60,0.06)', borderRadius: 'var(--radius)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
+                    <Briefcase size={18} style={{ color: 'var(--color-secondary)' }} />
+                  </div>
+                  <h3 className="text-headline-sm" style={{ margin: '0 0 8px 0', color: 'var(--color-secondary)', fontSize: '16px', fontWeight: 700 }}>Service Quality</h3>
+                  <p style={{ fontSize: 'var(--text-body-sm)', color: 'var(--color-on-surface-variant)', lineHeight: '18px', margin: 0 }}>
+                    You have submitted {myOffers.length} offers. Keep responding quickly to maintain your "Top Rated" status badge.
+                  </p>
+                </div>
+                <Link to={`/profile/${currentUser?.id}`} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700, fontSize: 'var(--text-body-sm)', color: 'var(--color-secondary)' }}>
+                  View Client Reviews →
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+
         {activeTab === 'client' ? (
           /* ─────────────────────────────────────────────────────────────────
              CLIENT VIEW
@@ -91,7 +205,7 @@ export function MyTasksPage() {
                     <Link key={task.id} to={`/tasks/${task.id}`} style={{ textDecoration: 'none' }}>
                       <div className="card card-hover">
                         <div className="card-body" style={{ padding: 'var(--space-4)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-4)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifycontent: 'space-between', gap: 'var(--space-4)', display: 'flex', justifyContent: 'space-between' }}>
                             <div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: '4px' }}>
                                 <span className="section-label" style={{ margin: 0, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -143,7 +257,7 @@ export function MyTasksPage() {
                     <Link key={task.id} to={`/tasks/${task.id}`} style={{ textDecoration: 'none' }}>
                       <div className="card card-hover">
                         <div className="card-body" style={{ padding: 'var(--space-4)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-4)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifycontent: 'space-between', gap: 'var(--space-4)', display: 'flex', justifyContent: 'space-between' }}>
                             <div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: '4px' }}>
                                 <span className="section-label" style={{ margin: 0, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -166,45 +280,49 @@ export function MyTasksPage() {
               </div>
             )}
 
-            {/* Completed client tasks */}
+            {/* Completed client tasks - Transaction List Spec */}
             {completedTasks.length > 0 && (
               <div>
-                <div className="section-label">History ({completedTasks.length})</div>
-                <div className="card">
-                  <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Task Title</th>
-                          <th>Category</th>
-                          <th>Completed Date</th>
-                          <th>Budget</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {completedTasks.map((task) => (
-                          <tr key={task.id}>
-                            <td style={{ fontWeight: 600 }}>
-                              <Link to={`/tasks/${task.id}`} style={{ color: 'var(--color-secondary)', textDecoration: 'none' }}>
-                                {task.title}
-                              </Link>
-                            </td>
-                            <td style={{ color: 'var(--color-on-surface-variant)' }}>
-                              {CATEGORY_ICONS[task.category]} {task.category}
-                            </td>
-                            <td style={{ color: 'var(--color-on-surface-variant)' }}>
-                              {formatDate(task.date)}
-                            </td>
-                            <td style={{ fontWeight: 700, fontFamily: 'var(--font-headline)', color: 'var(--color-secondary)' }}>
-                              {task.budget ? formatCurrency(task.budget) : '—'}
-                            </td>
-                            <td><StatusBadge status={task.status} /></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                <div className="section-label">Completed Task History ({completedTasks.length})</div>
+                <div className="transaction-rows-container">
+                  <div className="transaction-row-header">
+                    <span>Task Activity</span>
+                    <span style={{ textAlign: 'right', paddingRight: '220px' }}>Budget & Status</span>
                   </div>
+                  {completedTasks.map((task) => {
+                    const initials = task.title.substring(0, 2).toUpperCase();
+                    return (
+                      <Link key={task.id} to={`/tasks/${task.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <div className="transaction-row-item">
+                          <div>
+                            <div className="transaction-initials-badge">{initials}</div>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontWeight: 700, color: 'var(--color-secondary)' }}>{task.title}</span>
+                            <span style={{ fontSize: 'var(--text-body-sm)', color: 'var(--color-on-surface-variant)', marginTop: '2px' }}>
+                              Category: {task.category}
+                            </span>
+                          </div>
+                          <div>
+                            <span style={{ fontSize: 'var(--text-body-sm)', color: 'var(--color-on-surface-variant)' }}>
+                              Completed {formatDate(task.date)}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', paddingRight: '16px' }}>
+                            <span className="transaction-amount-red">
+                              {task.budget ? `- ${formatCurrency(task.budget)}` : 'Open'}
+                            </span>
+                            <span style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)', marginTop: '2px' }}>
+                              {task.budgetType === 'fixed' ? 'Fixed price' : task.budgetType === 'hourly' ? 'Hourly rate' : 'Open budget'}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <StatusBadge status={task.status} />
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -227,7 +345,7 @@ export function MyTasksPage() {
                       <Link key={task.id} to={`/tasks/${task.id}`} style={{ textDecoration: 'none' }}>
                         <div className="card card-hover">
                           <div className="card-body" style={{ padding: 'var(--space-4)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-4)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifycontent: 'space-between', gap: 'var(--space-4)', display: 'flex', justifyContent: 'space-between' }}>
                               <div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: '8px', flexWrap: 'wrap' }}>
                                   <span className="section-label" style={{ margin: 0, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -284,7 +402,7 @@ export function MyTasksPage() {
                     return (
                       <div key={offer.id} className="card">
                         <div className="card-body" style={{ padding: 'var(--space-4)' }}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifycontent: 'space-between', gap: 'var(--space-4)', display: 'flex', justifyContent: 'space-between' }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: '8px', flexWrap: 'wrap' }}>
                                 <span className="section-label" style={{ margin: 0, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -308,7 +426,7 @@ export function MyTasksPage() {
                               </div>
                             </div>
                           </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-4)', borderTop: '1px solid var(--color-surface-container-highest)', paddingTop: 'var(--space-3)' }}>
+                          <div style={{ display: 'flex', justifycontent: 'space-between', alignItems: 'center', marginTop: 'var(--space-4)', borderTop: '1px solid var(--color-surface-container-highest)', paddingTop: 'var(--space-3)', display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ fontSize: 'var(--text-label-md)', color: 'var(--color-on-surface-variant)' }}>
                               SUBMITTED {formatRelativeTime(offer.createdAt)}
                             </span>
@@ -330,50 +448,52 @@ export function MyTasksPage() {
               )}
             </div>
 
-            {/* Completed Jobs */}
+            {/* Completed Jobs - Transaction List Spec */}
             {completedJobs.length > 0 && (
               <div>
                 <div className="section-label">Completed Jobs History ({completedJobs.length})</div>
-                <div className="card">
-                  <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Task Title</th>
-                          <th>Category</th>
-                          <th>Date</th>
-                          <th>Earned</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {completedJobs.map((task) => {
-                          const tx = state.walletTransactions.find(
-                            (w) => w.taskId === task.id && w.coTaskerId === currentUser?.id
-                          );
-                          return (
-                            <tr key={task.id}>
-                              <td style={{ fontWeight: 600 }}>
-                                <Link to={`/tasks/${task.id}`} style={{ color: 'var(--color-secondary)', textDecoration: 'none' }}>
-                                  {task.title}
-                                </Link>
-                              </td>
-                              <td style={{ color: 'var(--color-on-surface-variant)' }}>
-                                {CATEGORY_ICONS[task.category]} {task.category}
-                              </td>
-                              <td style={{ color: 'var(--color-on-surface-variant)' }}>
-                                {formatDate(task.date)}
-                              </td>
-                              <td style={{ fontWeight: 700, fontFamily: 'var(--font-headline)', color: 'var(--color-secondary)' }}>
-                                {tx ? formatCurrency(tx.amount) : '—'}
-                              </td>
-                              <td><StatusBadge status={task.status} /></td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                <div className="transaction-rows-container">
+                  <div className="transaction-row-header">
+                    <span>Job / Project Activity</span>
+                    <span style={{ textAlign: 'right', paddingRight: '220px' }}>Earnings & Status</span>
                   </div>
+                  {completedJobs.map((task) => {
+                    const tx = state.walletTransactions.find(
+                      (w) => w.taskId === task.id && w.coTaskerId === currentUser?.id
+                    );
+                    const initials = task.title.substring(0, 2).toUpperCase();
+                    return (
+                      <Link key={task.id} to={`/tasks/${task.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <div className="transaction-row-item">
+                          <div>
+                            <div className="transaction-initials-badge">{initials}</div>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontWeight: 700, color: 'var(--color-secondary)' }}>{task.title}</span>
+                            <span style={{ fontSize: 'var(--text-body-sm)', color: 'var(--color-on-surface-variant)', marginTop: '2px' }}>
+                              Category: {task.category}
+                            </span>
+                          </div>
+                          <div>
+                            <span style={{ fontSize: 'var(--text-body-sm)', color: 'var(--color-on-surface-variant)' }}>
+                              Completed {formatDate(task.date)}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', paddingRight: '16px' }}>
+                            <span className="transaction-amount-green">
+                              {tx ? `+ ${formatCurrency(tx.amount)}` : '—'}
+                            </span>
+                            <span style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)', marginTop: '2px' }}>
+                              {tx ? 'Released' : 'Processing'}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <StatusBadge status={task.status} />
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             )}

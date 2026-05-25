@@ -215,24 +215,24 @@ input, textarea, select { font-family: inherit; }
   max-width: 100%;
 }
 
-/* ── Buttons — Commerzbank Exact Spec ──────────────────────────────────────── */
+/* ── Buttons — Commerzbank Exact Spec (Pill Shape & Gold/Petrol styling) ── */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: 10px var(--space-5);
+  padding: 10px var(--space-6);
   font-size: var(--text-body-sm);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 20px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-full); /* Pill shape per latest designs */
   transition: all var(--transition-fast);
   white-space: nowrap;
   cursor: pointer;
   outline: none;
   border: 1.5px solid transparent;
   font-family: var(--font-body);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
 }
 
 .btn:focus-visible {
@@ -241,14 +241,15 @@ input, textarea, select { font-family: inherit; }
 }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* Primary — Gold with dark text (Commerzbank CTA) */
+/* Primary — Gold with dark Petrol text (Commerzbank CTA) */
 .btn-primary {
   background: var(--color-primary-container);
-  color: var(--color-on-primary-container);
+  color: var(--color-secondary); /* Dark Petrol text */
   border-color: var(--color-primary-container);
+  box-shadow: var(--shadow-sm);
 }
-.btn-primary:hover:not(:disabled) { background: #e6c200; border-color: #e6c200; }
-.btn-primary:active:not(:disabled) { background: #ccaa00; transform: scale(0.99); }
+.btn-primary:hover:not(:disabled) { background: #fed800; border-color: #fed800; transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn-primary:active:not(:disabled) { background: #ccaa00; transform: scale(0.97); }
 
 /* Secondary — Navy filled */
 .btn-secondary {
@@ -257,15 +258,16 @@ input, textarea, select { font-family: inherit; }
   border-color: var(--color-secondary);
 }
 .btn-secondary:hover:not(:disabled) { background: #003d50; border-color: #003d50; }
-.btn-secondary:active:not(:disabled) { transform: scale(0.99); }
+.btn-secondary:active:not(:disabled) { transform: scale(0.97); }
 
 /* Outlined — navy border, transparent bg */
-.btn-outlined {
+.btn-outlined, .btn-outline {
   background: transparent;
   color: var(--color-secondary);
   border-color: var(--color-secondary);
 }
-.btn-outlined:hover:not(:disabled) { background: rgba(0,46,60,0.05); }
+.btn-outlined:hover:not(:disabled), .btn-outline:hover:not(:disabled) { background: rgba(0,46,60,0.05); }
+.btn-outlined:active:not(:disabled), .btn-outline:active:not(:disabled) { transform: scale(0.97); }
 
 /* Ghost */
 .btn-ghost {
@@ -286,7 +288,8 @@ input, textarea, select { font-family: inherit; }
 /* Sizes */
 .btn-sm  { padding: 6px var(--space-4); font-size: var(--text-label-md); }
 .btn-lg  { padding: var(--space-3) var(--space-8); font-size: var(--text-body-md); }
-.btn-icon{ padding: var(--space-2); border-radius: var(--radius); }
+.btn-icon{ padding: var(--space-2); border-radius: var(--radius-full); }
+
 
 /* ── Cards — Commerzbank "White + 1px border" pattern ──────────────────────── */
 .card {
@@ -726,3 +729,185 @@ tbody tr:hover td                 { background: var(--color-surface-container-lo
   background: var(--color-primary-container);
   flex-shrink: 0; margin-top: 5px;
 }
+
+/* ── Commerzbank Brand Elements (Stitch SPEC) ── */
+.diamond-logo-wrap {
+  width: 48px;
+  height: 48px;
+  background: var(--color-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(45deg);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+.diamond-logo-inner {
+  width: 20px;
+  height: 20px;
+  background: var(--color-surface-white);
+  transform: rotate(-45deg);
+}
+
+/* Bento promo cards */
+.promo-card-dark {
+  background: var(--color-secondary);
+  color: var(--color-on-secondary);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 280px;
+  position: relative;
+  overflow: hidden;
+}
+.promo-card-dark::after {
+  content: '';
+  position: absolute;
+  top: -64px;
+  right: -64px;
+  width: 128px;
+  height: 128px;
+  background: rgba(255, 215, 0, 0.08);
+  border-radius: 50%;
+  transition: transform var(--transition-slow);
+}
+.promo-card-dark:hover::after {
+  transform: scale(1.2);
+}
+
+.promo-card-light {
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 280px;
+  border: 1px solid var(--color-outline-variant);
+  transition: border-color var(--transition-fast);
+}
+.promo-card-light:hover {
+  border-color: var(--color-secondary-mid);
+}
+
+.promo-card-btn-gold {
+  background: var(--color-primary-container);
+  color: var(--color-secondary);
+  font-weight: 700;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: fit-content;
+  transition: background var(--transition-fast);
+}
+.promo-card-btn-gold:hover {
+  background: #e6c200;
+}
+
+/* Clipped Promo Banner */
+.promo-banner {
+  position: relative;
+  background: var(--color-secondary);
+  color: #ffffff;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  height: 80px;
+  border: 1px solid var(--color-outline-variant);
+  margin-bottom: var(--space-6);
+}
+.promo-banner-left {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 192px;
+  background: #ffffff;
+  clip-path: polygon(0 0, 100% 0, 85% 100%, 0% 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+}
+.promo-banner-left img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  border-radius: var(--radius);
+  opacity: 0.85;
+}
+.promo-banner-right {
+  margin-left: 212px;
+  flex-grow: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-right: var(--space-6);
+}
+
+/* Transaction List Rows (Startpage & Overview spec) */
+.transaction-rows-container {
+  background: var(--color-surface-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-outline-variant);
+  overflow: hidden;
+}
+.transaction-row-header {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface-container-low);
+  border-bottom: 1px solid var(--color-outline-variant);
+  font-size: var(--text-label-md);
+  font-weight: 600;
+  color: var(--color-on-surface-variant);
+}
+.transaction-row-item {
+  display: grid;
+  grid-template-columns: 56px 1fr 1fr 180px 40px;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-white);
+  border-bottom: 1px solid var(--color-surface-container-highest);
+  transition: background var(--transition-fast), transform var(--transition-fast);
+  cursor: pointer;
+}
+.transaction-row-item:last-child {
+  border-bottom: none;
+}
+.transaction-row-item:hover {
+  background: var(--color-surface-container-low);
+}
+.transaction-row-item:active {
+  transform: scale(0.995);
+}
+.transaction-initials-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-container-highest);
+  color: var(--color-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+  border: 1px solid var(--color-outline-variant);
+}
+.transaction-amount-green {
+  color: var(--color-status-success);
+  font-weight: 700;
+  font-family: var(--font-headline);
+}
+.transaction-amount-red {
+  color: var(--color-error);
+  font-weight: 700;
+  font-family: var(--font-headline);
+}
+
