@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Calendar, Clock, MapPin, Plus, X, 
   Check, FileText, DollarSign, Image as ImageIcon, Sparkles,
-  HelpCircle, MoreHorizontal, Search
+  HelpCircle, MoreHorizontal, Search, Wallet
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext, createTaskAction } from '../../context/AppContext';
@@ -209,7 +209,7 @@ export function NewTaskPage() {
         </div>
       </div>
 
-      <div className="page-inner" style={{ maxWidth: '840px', margin: '0 auto' }}>
+      <div className="page-inner">
         
         {/* Stepper Progress bar */}
         <div style={{
@@ -279,406 +279,435 @@ export function NewTaskPage() {
 
         {/* STEP 1: TASK DETAILS */}
         {step === 1 && (
-          <div className="card">
-            <div className="card-header">
-              <h2 className="text-headline-sm" style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FileText size={18} style={{ color: 'var(--color-secondary-mid)' }} />
-                Step 1: Describe your task details
-              </h2>
-            </div>
-            <div className="card-body flex flex-col gap-5" style={{ padding: 'var(--space-6)' }}>
-              
-              <Input
-                label="Task Title"
-                value={form.title}
-                onChange={update('title')}
-                error={errors.title}
-                required
-                placeholder="e.g. Assemble IKEA PAX Wardrobe in bedroom"
-                hint="Summarize the core service you need"
-              />
-
-              <Textarea
-                label="Description"
-                value={form.description}
-                onChange={update('description')}
-                error={errors.description}
-                required
-                rows={5}
-                placeholder="Detail what needs to be done. E.g. tools needed, dimensions of items, apartment level, elevator availability, etc."
-                hint={`${form.description.length}/30 characters minimum`}
-              />
-
-              <div className="form-group">
-                <label className="form-label">Type of Task</label>
-                <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-                  {[
-                    { value: 'in_person', label: '📍 In Person', desc: 'Requires physical presence' },
-                    { value: 'remote', label: '💻 Remote / Online', desc: 'Can be done from anywhere' },
-                  ].map((t) => (
-                    <label
-                      key={t.value}
-                      style={{
-                        flex: 1,
-                        padding: 'var(--space-4)',
-                        border: `1.5px solid ${form.taskType === t.value ? 'var(--color-secondary)' : 'var(--color-outline-variant)'}`,
-                        borderRadius: 'var(--radius-lg)',
-                        cursor: 'pointer',
-                        background: form.taskType === t.value ? 'var(--color-surface-container-low)' : 'transparent',
-                        transition: 'all var(--transition-fast)',
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        name="taskType"
-                        checked={form.taskType === t.value}
-                        onChange={() => setFormVal('taskType', t.value)}
-                        style={{ display: 'none' }}
-                      />
-                      <div style={{ fontWeight: 700, fontSize: 'var(--text-body-sm)', color: 'var(--color-secondary)', marginBottom: '2px' }}>{t.label}</div>
-                      <div style={{ fontSize: 'var(--text-label-md)', color: 'var(--color-on-surface-variant)' }}>{t.desc}</div>
-                    </label>
-                  ))}
+          <div className="flex flex-col gap-6">
+            <div className="bento-grid" style={{ gap: 'var(--space-6)' }}>
+              {/* Left Column: Core Info */}
+              <div className="bento-col-8 card" style={{ height: 'fit-content' }}>
+                <div className="card-header">
+                  <h2 className="text-headline-sm" style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FileText size={18} style={{ color: 'var(--color-secondary-mid)' }} />
+                    Step 1: Core Details
+                  </h2>
                 </div>
-              </div>
-
-              {/* Conditional Location details */}
-              {form.taskType === 'in_person' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-3)', background: 'var(--color-surface-container-lowest)', padding: 'var(--space-4)', borderRadius: 'var(--radius)', border: '1px solid var(--color-outline-variant)' }}>
-                  <Select
-                    label="City"
-                    value={form.location}
-                    onChange={update('location')}
-                    error={errors.location}
-                    required
-                    options={AUSTRALIAN_CITIES.map((c) => ({ value: c, label: c }))}
-                  />
+                <div className="card-body flex flex-col gap-5" style={{ padding: 'var(--space-6)' }}>
                   <Input
-                    label="Address / Area details"
-                    value={form.address}
-                    onChange={update('address')}
-                    error={errors.address}
+                    label="Task Title"
+                    value={form.title}
+                    onChange={update('title')}
+                    error={errors.title}
                     required
-                    placeholder="e.g. Friedrichstraße 100, Berlin-Mitte"
+                    placeholder="e.g. Assemble IKEA PAX Wardrobe in bedroom"
+                    hint="Summarize the core service you need"
                   />
-                </div>
-              )}
 
-              <div className="form-group">
-                <label className="form-label required">Task Category</label>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
-                  gap: 'var(--space-4) var(--space-2)',
-                  marginTop: '12px'
-                }}>
-                  {(() => {
-                    const isSelectedPopular = form.category ? POPULAR_CATEGORIES.includes(form.category as any) : true;
-                    const displayedCategories = [...POPULAR_CATEGORIES];
-                    if (form.category && !isSelectedPopular) {
-                      displayedCategories.push(form.category);
-                    }
-                    return (
-                      <>
-                        {displayedCategories.map((c) => {
-                          const isSelected = form.category === c;
-                          const IconComponent = CATEGORY_LUCIDE_ICONS[c] || HelpCircle;
-                          return (
-                            <button
-                              key={c}
-                              type="button"
-                              onClick={() => setFormVal('category', c)}
-                              className={`category-grid-item${isSelected ? ' is-selected' : ''}`}
-                            >
-                              <div className="category-icon-circle">
-                                <IconComponent size={24} strokeWidth={1.8} />
-                              </div>
-                              <span className="category-label">
-                                {c}
-                              </span>
-                            </button>
-                          );
-                        })}
-
-                        {/* More Categories Trigger */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCategorySearchQuery(''); // Reset search when opening
-                            setIsCategoryModalOpen(true);
-                          }}
-                          className="category-grid-item"
-                        >
-                          <div className="category-icon-circle">
-                            <MoreHorizontal size={24} strokeWidth={1.8} />
-                          </div>
-                          <span className="category-label">
-                            More...
-                          </span>
-                        </button>
-                      </>
-                    );
-                  })()}
-                </div>
-                {errors.category && (
-                  <span style={{ color: 'var(--color-status-error)', fontSize: '11px', marginTop: '4px' }}>{errors.category}</span>
-                )}
-              </div>
-
-              {/* All Categories Modal Popup */}
-              <Modal
-                isOpen={isCategoryModalOpen}
-                onClose={() => setIsCategoryModalOpen(false)}
-                title="Select Task Category"
-                size="lg"
-              >
-                {/* Search Bar */}
-                <div className="category-search-container">
-                  <input
-                    type="text"
-                    className="category-search-input"
-                    placeholder="Search categories (e.g. painting, cleaning...)"
-                    value={categorySearchQuery}
-                    onChange={(e) => setCategorySearchQuery(e.target.value)}
-                    autoFocus
+                  <Textarea
+                    label="Description"
+                    value={form.description}
+                    onChange={update('description')}
+                    error={errors.description}
+                    required
+                    rows={5}
+                    placeholder="Detail what needs to be done. E.g. tools needed, dimensions of items, apartment level, elevator availability, etc."
+                    hint={`${form.description.length}/30 characters minimum`}
                   />
-                  {categorySearchQuery ? (
-                    <div 
-                      className="category-search-icon" 
-                      onClick={() => setCategorySearchQuery('')}
-                      role="button"
-                      aria-label="Clear search"
-                    >
-                      <X size={16} />
-                    </div>
-                  ) : (
-                    <div className="category-search-icon" style={{ cursor: 'default', pointerEvents: 'none' }}>
-                      <Search size={16} />
-                    </div>
-                  )}
-                </div>
 
-                {/* Grid */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
-                  gap: 'var(--space-4) var(--space-2)',
-                  maxHeight: '340px',
-                  overflowY: 'auto',
-                  padding: 'var(--space-2)'
-                }}>
-                  {(() => {
-                    const filtered = TASK_CATEGORIES.filter((c) =>
-                      c.toLowerCase().includes(categorySearchQuery.toLowerCase())
-                    );
-                    
-                    if (filtered.length === 0) {
-                      return (
-                        <div style={{
-                          gridColumn: '1 / -1',
-                          textAlign: 'center',
-                          padding: 'var(--space-8) 0',
-                          color: 'var(--color-on-surface-variant)',
-                          fontSize: 'var(--text-body-sm)'
-                        }}>
-                          <HelpCircle size={32} style={{ color: 'var(--color-outline)', marginBottom: '8px', opacity: 0.7 }} />
-                          <div>No categories matching "{categorySearchQuery}"</div>
-                        </div>
-                      );
-                    }
-
-                    return filtered.map((c) => {
-                      const isSelected = form.category === c;
-                      const IconComponent = CATEGORY_LUCIDE_ICONS[c] || HelpCircle;
-                      return (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => {
-                            setFormVal('category', c);
-                            setIsCategoryModalOpen(false);
-                          }}
-                          className={`category-grid-item${isSelected ? ' is-selected' : ''}`}
-                        >
-                          <div className="category-icon-circle">
-                            <IconComponent size={24} strokeWidth={1.8} />
-                          </div>
-                          <span className="category-label">
-                            {c}
-                          </span>
-                        </button>
-                      );
-                    });
-                  })()}
-                </div>
-              </Modal>
-
-              {/* Must-Haves Builder */}
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Sparkles size={14} style={{ color: 'var(--color-secondary-mid)' }} />
-                  Must-Haves & Requirements (Optional)
-                </label>
-                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="e.g. Must bring own tools / drill"
-                    value={newMustHave}
-                    onChange={(e) => setNewMustHave(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addMustHave())}
-                    style={{ flex: 1 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={addMustHave}
-                    className="btn btn-secondary btn-sm"
-                    style={{
-                      whiteSpace: 'nowrap',
-                      padding: '10px 16px',
-                      borderRadius: 'var(--radius-full)'
-                    }}
-                  >
-                    <Plus size={14} /> Add
-                  </button>
-                </div>
-                
-                {form.mustHaves.length > 0 && (
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 'var(--space-2)',
-                    marginTop: '12px'
-                  }}>
-                    {form.mustHaves.map((m, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '10px var(--space-4)',
-                          background: 'var(--color-surface-container-low)',
-                          border: '1px solid var(--color-outline-variant)',
-                          borderRadius: 'var(--radius)',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                          <div
-                            className="transaction-initials-badge"
-                            style={{
-                              width: '24px',
-                              height: '24px',
-                              fontSize: '10px',
-                              flexShrink: 0,
-                              background: 'var(--color-primary-container)',
-                              borderColor: 'var(--color-outline-variant)',
-                              color: 'var(--color-secondary)'
-                            }}
-                          >
-                            ✓
-                          </div>
-                          <span style={{ fontSize: 'var(--text-body-sm)', color: 'var(--color-on-surface)', fontWeight: 500 }}>
-                            {m}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeMustHave(idx)}
+                  <div className="form-group">
+                    <label className="form-label">Type of Task</label>
+                    <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+                      {[
+                        { value: 'in_person', label: '📍 In Person', desc: 'Requires physical presence' },
+                        { value: 'remote', label: '💻 Remote / Online', desc: 'Can be done from anywhere' },
+                      ].map((t) => (
+                        <label
+                          key={t.value}
                           style={{
-                            color: 'var(--color-on-surface-variant)',
-                            padding: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                            flex: 1,
+                            padding: 'var(--space-4)',
+                            border: `1.5px solid ${form.taskType === t.value ? 'var(--color-secondary)' : 'var(--color-outline-variant)'}`,
+                            borderRadius: 'var(--radius-lg)',
                             cursor: 'pointer',
-                            borderRadius: '50%',
-                            transition: 'all var(--transition-fast)'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = 'var(--color-status-error)';
-                            e.currentTarget.style.background = 'rgba(211,47,47,0.08)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = 'var(--color-on-surface-variant)';
-                            e.currentTarget.style.background = 'none';
-                          }}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Mock Image Upload */}
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <ImageIcon size={14} style={{ color: 'var(--color-secondary-mid)' }} />
-                  Upload Image or Reference Photo
-                </label>
-                
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '10px' }}>
-                  <button 
-                    type="button" 
-                    className={`btn btn-sm ${!customImageMode ? 'btn-primary' : 'btn-outline'}`}
-                    onClick={() => setCustomImageMode(false)}
-                  >
-                    Select Preset
-                  </button>
-                  <button 
-                    type="button" 
-                    className={`btn btn-sm ${customImageMode ? 'btn-primary' : 'btn-outline'}`}
-                    onClick={() => setCustomImageMode(true)}
-                  >
-                    Paste Custom URL
-                  </button>
-                </div>
-
-                {!customImageMode ? (
-                  <div>
-                    <p style={{ fontSize: '11px', color: 'var(--color-on-surface-variant)', margin: '0 0 8px 0' }}>Select a stock image related to your task category:</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' }}>
-                      {PRESET_IMAGES.map((img) => (
-                        <div 
-                          key={img.label}
-                          onClick={() => setFormVal('imageUrl', img.url)}
-                          style={{
-                            cursor: 'pointer',
-                            borderRadius: 'var(--radius)',
-                            overflow: 'hidden',
-                            border: `2px solid ${form.imageUrl === img.url ? 'var(--color-primary)' : 'var(--color-outline-variant)'}`,
+                            background: form.taskType === t.value ? 'var(--color-surface-container-low)' : 'transparent',
                             transition: 'all var(--transition-fast)',
-                            position: 'relative'
                           }}
                         >
-                          <img src={img.url} alt={img.label} style={{ width: '100%', height: '70px', objectFit: 'cover', display: 'block' }} />
-                          <div style={{ fontSize: '9px', fontWeight: 600, textAlign: 'center', padding: '4px', background: 'var(--color-surface-container-low)', color: 'var(--color-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {img.label}
-                          </div>
-                          {form.imageUrl === img.url && (
-                            <div style={{ position: 'absolute', top: 4, right: 4, background: 'var(--color-primary)', color: 'var(--color-on-primary)', borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Check size={10} />
-                            </div>
-                          )}
-                        </div>
+                          <input
+                            type="radio"
+                            name="taskType"
+                            checked={form.taskType === t.value}
+                            onChange={() => setFormVal('taskType', t.value)}
+                            style={{ display: 'none' }}
+                          />
+                          <div style={{ fontWeight: 700, fontSize: 'var(--text-body-sm)', color: 'var(--color-secondary)', marginBottom: '2px' }}>{t.label}</div>
+                          <div style={{ fontSize: 'var(--text-label-md)', color: 'var(--color-on-surface-variant)' }}>{t.desc}</div>
+                        </label>
                       ))}
                     </div>
                   </div>
+
+                  {/* Conditional Location details */}
+                  {form.taskType === 'in_person' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-3)', background: 'var(--color-surface-container-lowest)', padding: 'var(--space-4)', borderRadius: 'var(--radius)', border: '1px solid var(--color-outline-variant)' }}>
+                      <Select
+                        label="City"
+                        value={form.location}
+                        onChange={update('location')}
+                        error={errors.location}
+                        required
+                        options={AUSTRALIAN_CITIES.map((c) => ({ value: c, label: c }))}
+                      />
+                      <Input
+                        label="Address / Area details"
+                        value={form.address}
+                        onChange={update('address')}
+                        error={errors.address}
+                        required
+                        placeholder="e.g. Friedrichstraße 100, Berlin-Mitte"
+                      />
+                    </div>
+                  )}
+
+                  <div className="form-group">
+                    <label className="form-label required">Task Category</label>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
+                      gap: 'var(--space-4) var(--space-2)',
+                      marginTop: '12px'
+                    }}>
+                      {(() => {
+                        const isSelectedPopular = form.category ? POPULAR_CATEGORIES.includes(form.category as any) : true;
+                        const displayedCategories = [...POPULAR_CATEGORIES];
+                        if (form.category && !isSelectedPopular) {
+                          displayedCategories.push(form.category);
+                        }
+                        return (
+                          <>
+                            {displayedCategories.map((c) => {
+                              const isSelected = form.category === c;
+                              const IconComponent = CATEGORY_LUCIDE_ICONS[c] || HelpCircle;
+                              return (
+                                <button
+                                  key={c}
+                                  type="button"
+                                  onClick={() => setFormVal('category', c)}
+                                  className={`category-grid-item${isSelected ? ' is-selected' : ''}`}
+                                >
+                                  <div className="category-icon-circle">
+                                    <IconComponent size={24} strokeWidth={1.8} />
+                                  </div>
+                                  <span className="category-label">
+                                    {c}
+                                  </span>
+                                </button>
+                              );
+                            })}
+
+                            {/* More Categories Trigger */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCategorySearchQuery('');
+                                setIsCategoryModalOpen(true);
+                              }}
+                              className="category-grid-item"
+                            >
+                              <div className="category-icon-circle">
+                                <MoreHorizontal size={24} strokeWidth={1.8} />
+                              </div>
+                              <span className="category-label">
+                                More...
+                              </span>
+                            </button>
+                          </>
+                        );
+                      })()}
+                    </div>
+                    {errors.category && (
+                      <span style={{ color: 'var(--color-status-error)', fontSize: '11px', marginTop: '4px' }}>{errors.category}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Extras (Requirements & Image) */}
+              <div className="bento-col-4 flex flex-col gap-6">
+                {/* Requirements Card */}
+                <div className="card">
+                  <div className="card-header">
+                    <h2 className="text-headline-sm" style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Sparkles size={16} style={{ color: 'var(--color-secondary-mid)' }} />
+                      Requirements & Must-Haves
+                    </h2>
+                  </div>
+                  <div className="card-body flex flex-col gap-4" style={{ padding: 'var(--space-5)' }}>
+                    <p style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', margin: 0 }}>
+                      Specify any must-haves, e.g. "must bring own drill" or "must have a van".
+                    </p>
+                    <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. Must bring own drill"
+                        value={newMustHave}
+                        onChange={(e) => setNewMustHave(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addMustHave())}
+                        style={{ flex: 1, fontSize: '13px' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={addMustHave}
+                        className="btn btn-secondary btn-sm"
+                        style={{
+                          whiteSpace: 'nowrap',
+                          padding: '10px 14px',
+                          borderRadius: 'var(--radius-full)'
+                        }}
+                      >
+                        <Plus size={14} /> Add
+                      </button>
+                    </div>
+
+                    {form.mustHaves.length > 0 && (
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 'var(--space-2)',
+                        marginTop: '4px'
+                      }}>
+                        {form.mustHaves.map((m, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '8px var(--space-3)',
+                              background: 'var(--color-surface-container-low)',
+                              border: '1px solid var(--color-outline-variant)',
+                              borderRadius: 'var(--radius)',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                              <div
+                                className="transaction-initials-badge"
+                                style={{
+                                  width: '20px',
+                                  height: '20px',
+                                  fontSize: '9px',
+                                  flexShrink: 0,
+                                  background: 'var(--color-primary-container)',
+                                  borderColor: 'var(--color-outline-variant)',
+                                  color: 'var(--color-secondary)'
+                                }}
+                              >
+                                ✓
+                              </div>
+                              <span style={{ fontSize: '12px', color: 'var(--color-on-surface)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {m}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeMustHave(idx)}
+                              style={{
+                                color: 'var(--color-on-surface-variant)',
+                                padding: '2px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                borderRadius: '50%',
+                                background: 'none',
+                                border: 'none',
+                                transition: 'all var(--transition-fast)'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = 'var(--color-status-error)';
+                                e.currentTarget.style.background = 'rgba(211,47,47,0.08)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = 'var(--color-on-surface-variant)';
+                                e.currentTarget.style.background = 'none';
+                              }}
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Photo Selection Card */}
+                <div className="card">
+                  <div className="card-header">
+                    <h2 className="text-headline-sm" style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <ImageIcon size={16} style={{ color: 'var(--color-secondary-mid)' }} />
+                      Reference Photo
+                    </h2>
+                  </div>
+                  <div className="card-body flex flex-col gap-4" style={{ padding: 'var(--space-5)' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        type="button" 
+                        className={`btn btn-sm ${!customImageMode ? 'btn-primary' : 'btn-outlined'}`}
+                        onClick={() => setCustomImageMode(false)}
+                        style={{ padding: '4px 10px', fontSize: '11px' }}
+                      >
+                        Preset
+                      </button>
+                      <button 
+                        type="button" 
+                        className={`btn btn-sm ${customImageMode ? 'btn-primary' : 'btn-outlined'}`}
+                        onClick={() => setCustomImageMode(true)}
+                        style={{ padding: '4px 10px', fontSize: '11px' }}
+                      >
+                        Paste URL
+                      </button>
+                    </div>
+
+                    {!customImageMode ? (
+                      <div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                          {PRESET_IMAGES.map((img) => (
+                            <div 
+                              key={img.label}
+                              onClick={() => setFormVal('imageUrl', img.url)}
+                              style={{
+                                cursor: 'pointer',
+                                borderRadius: 'var(--radius)',
+                                overflow: 'hidden',
+                                border: `2px solid ${form.imageUrl === img.url ? 'var(--color-primary)' : 'var(--color-outline-variant)'}`,
+                                transition: 'all var(--transition-fast)',
+                                position: 'relative'
+                              }}
+                            >
+                              <img src={img.url} alt={img.label} style={{ width: '100%', height: '52px', objectFit: 'cover', display: 'block' }} />
+                              <div style={{ fontSize: '8px', fontWeight: 600, textAlign: 'center', padding: '2px', background: 'var(--color-surface-container-low)', color: 'var(--color-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {img.label}
+                              </div>
+                              {form.imageUrl === img.url && (
+                                <div style={{ position: 'absolute', top: 2, right: 2, background: 'var(--color-primary)', color: 'var(--color-on-primary)', borderRadius: '50%', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <Check size={8} />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <Input
+                        value={form.imageUrl}
+                        onChange={update('imageUrl')}
+                        placeholder="https://images.unsplash.com/photo-..."
+                        hint="Paste any public image address url"
+                        style={{ fontSize: '12px' }}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* All Categories Modal Popup */}
+            <Modal
+              isOpen={isCategoryModalOpen}
+              onClose={() => setIsCategoryModalOpen(false)}
+              title="Select Task Category"
+              size="lg"
+            >
+              {/* Search Bar */}
+              <div className="category-search-container">
+                <input
+                  type="text"
+                  className="category-search-input"
+                  placeholder="Search categories (e.g. painting, cleaning...)"
+                  value={categorySearchQuery}
+                  onChange={(e) => setCategorySearchQuery(e.target.value)}
+                  autoFocus
+                />
+                {categorySearchQuery ? (
+                  <div 
+                    className="category-search-icon" 
+                    onClick={() => setCategorySearchQuery('')}
+                    role="button"
+                    aria-label="Clear search"
+                  >
+                    <X size={16} />
+                  </div>
                 ) : (
-                  <Input
-                    value={form.imageUrl}
-                    onChange={update('imageUrl')}
-                    placeholder="https://images.unsplash.com/photo-..."
-                    hint="Paste any public image address url"
-                  />
+                  <div className="category-search-icon" style={{ cursor: 'default', pointerEvents: 'none' }}>
+                    <Search size={16} />
+                  </div>
                 )}
               </div>
 
-            </div>
-            
-            <div className="card-footer" style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-4) var(--space-6)' }}>
+              {/* Grid */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
+                gap: 'var(--space-4) var(--space-2)',
+                maxHeight: '340px',
+                overflowY: 'auto',
+                padding: 'var(--space-2)'
+              }}>
+                {(() => {
+                  const filtered = TASK_CATEGORIES.filter((c) =>
+                    c.toLowerCase().includes(categorySearchQuery.toLowerCase())
+                  );
+                  
+                  if (filtered.length === 0) {
+                    return (
+                      <div style={{
+                        gridColumn: '1 / -1',
+                        textAlign: 'center',
+                        padding: 'var(--space-8) 0',
+                        color: 'var(--color-on-surface-variant)',
+                        fontSize: 'var(--text-body-sm)'
+                      }}>
+                        <HelpCircle size={32} style={{ color: 'var(--color-outline)', marginBottom: '8px', opacity: 0.7 }} />
+                        <div>No categories matching "{categorySearchQuery}"</div>
+                      </div>
+                    );
+                  }
+
+                  return filtered.map((c) => {
+                    const isSelected = form.category === c;
+                    const IconComponent = CATEGORY_LUCIDE_ICONS[c] || HelpCircle;
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => {
+                          setFormVal('category', c);
+                          setIsCategoryModalOpen(false);
+                        }}
+                        className={`category-grid-item${isSelected ? ' is-selected' : ''}`}
+                      >
+                        <div className="category-icon-circle">
+                          <IconComponent size={24} strokeWidth={1.8} />
+                        </div>
+                        <span className="category-label">
+                          {c}
+                        </span>
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+            </Modal>
+
+            {/* Stepper Navigation bar at bottom */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              background: 'var(--color-surface-white)',
+              padding: 'var(--space-4) var(--space-6)',
+              border: '1px solid var(--color-outline-variant)',
+              borderRadius: 'var(--radius-lg)',
+              marginTop: 'var(--space-2)'
+            }}>
               <Button type="button" variant="ghost" onClick={() => navigate(-1)}>
                 Cancel
               </Button>
@@ -691,67 +720,104 @@ export function NewTaskPage() {
 
         {/* STEP 2: DATE & TIME */}
         {step === 2 && (
-          <div className="card">
-            <div className="card-header">
-              <h2 className="text-headline-sm" style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Calendar size={18} style={{ color: 'var(--color-secondary-mid)' }} />
-                Step 2: When should this task be completed?
-              </h2>
-            </div>
-            <div className="card-body flex flex-col gap-5" style={{ padding: 'var(--space-6)' }}>
-              
-              <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-                {[
-                  { value: 'asap', label: '⚡ As soon as possible (ASAP)', desc: 'Flexible schedule, looking to complete immediately' },
-                  { value: 'specific', label: '📅 Specific Date & Time', desc: 'Choose a planned execution date' },
-                ].map((s) => (
-                  <label
-                    key={s.value}
-                    style={{
-                      flex: 1,
-                      padding: 'var(--space-5)',
-                      border: `1.5px solid ${form.scheduleType === s.value ? 'var(--color-secondary)' : 'var(--color-outline-variant)'}`,
-                      borderRadius: 'var(--radius-lg)',
-                      cursor: 'pointer',
-                      background: form.scheduleType === s.value ? 'var(--color-surface-container-low)' : 'transparent',
-                      transition: 'all var(--transition-fast)',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="scheduleType"
-                      checked={form.scheduleType === s.value}
-                      onChange={() => setFormVal('scheduleType', s.value)}
-                      style={{ display: 'none' }}
-                    />
-                    <div style={{ fontWeight: 700, fontSize: 'var(--text-body-sm)', color: 'var(--color-secondary)', marginBottom: '4px' }}>{s.label}</div>
-                    <div style={{ fontSize: 'var(--text-label-md)', color: 'var(--color-on-surface-variant)' }}>{s.desc}</div>
-                  </label>
-                ))}
+          <div className="flex flex-col gap-6">
+            <div className="bento-grid" style={{ gap: 'var(--space-6)' }}>
+              {/* Left Column: Schedule inputs */}
+              <div className="bento-col-8 card" style={{ height: 'fit-content' }}>
+                <div className="card-header">
+                  <h2 className="text-headline-sm" style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Calendar size={18} style={{ color: 'var(--color-secondary-mid)' }} />
+                    Step 2: When should this task be completed?
+                  </h2>
+                </div>
+                <div className="card-body flex flex-col gap-5" style={{ padding: 'var(--space-6)' }}>
+                  <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+                    {[
+                      { value: 'asap', label: '⚡ As soon as possible (ASAP)', desc: 'Flexible schedule, looking to complete immediately' },
+                      { value: 'specific', label: '📅 Specific Date & Time', desc: 'Choose a planned execution date' },
+                    ].map((s) => (
+                      <label
+                        key={s.value}
+                        style={{
+                          flex: 1,
+                          padding: 'var(--space-5)',
+                          border: `1.5px solid ${form.scheduleType === s.value ? 'var(--color-secondary)' : 'var(--color-outline-variant)'}`,
+                          borderRadius: 'var(--radius-lg)',
+                          cursor: 'pointer',
+                          background: form.scheduleType === s.value ? 'var(--color-surface-container-low)' : 'transparent',
+                          transition: 'all var(--transition-fast)',
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="scheduleType"
+                          checked={form.scheduleType === s.value}
+                          onChange={() => setFormVal('scheduleType', s.value)}
+                          style={{ display: 'none' }}
+                        />
+                        <div style={{ fontWeight: 700, fontSize: 'var(--text-body-sm)', color: 'var(--color-secondary)', marginBottom: '4px' }}>{s.label}</div>
+                        <div style={{ fontSize: 'var(--text-label-md)', color: 'var(--color-on-surface-variant)' }}>{s.desc}</div>
+                      </label>
+                    ))}
+                  </div>
+
+                  {form.scheduleType === 'specific' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', background: 'var(--color-surface-container-lowest)', padding: 'var(--space-4)', borderRadius: 'var(--radius)', border: '1px solid var(--color-outline-variant)' }}>
+                      <Input
+                        label="Preferred Date"
+                        type="date"
+                        value={form.date}
+                        onChange={update('date')}
+                        error={errors.date}
+                        required
+                        min={new Date().toISOString().split('T')[0]}
+                      />
+                      <Input
+                        label="Preferred Time (optional)"
+                        type="time"
+                        value={form.time}
+                        onChange={update('time')}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {form.scheduleType === 'specific' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', background: 'var(--color-surface-container-lowest)', padding: 'var(--space-4)', borderRadius: 'var(--radius)', border: '1px solid var(--color-outline-variant)' }}>
-                  <Input
-                    label="Preferred Date"
-                    type="date"
-                    value={form.date}
-                    onChange={update('date')}
-                    error={errors.date}
-                    required
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                  <Input
-                    label="Preferred Time (optional)"
-                    type="time"
-                    value={form.time}
-                    onChange={update('time')}
-                  />
+              {/* Right Column: Schedule Guide Info */}
+              <div className="bento-col-4 card" style={{ height: 'fit-content' }}>
+                <div className="card-header">
+                  <h2 className="text-headline-sm" style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Clock size={16} style={{ color: 'var(--color-secondary-mid)' }} />
+                    Scheduling Guide
+                  </h2>
                 </div>
-              )}
-
+                <div className="card-body flex flex-col gap-4" style={{ padding: 'var(--space-5)', fontSize: 'var(--text-body-sm)', color: 'var(--color-on-surface-variant)', lineHeight: '1.6' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <div style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>⚡</div>
+                    <div>
+                      <strong>ASAP Tasks:</strong> Ideal for urgent needs. Taskers looking for immediate work will receive notifications instantly.
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <div style={{ color: 'var(--color-secondary-mid)', fontWeight: 'bold' }}>📅</div>
+                    <div>
+                      <strong>Planned Tasks:</strong> Schedule up to 30 days in advance. Allows you to coordinate details with taskers for a specific date.
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="card-footer" style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-4) var(--space-6)' }}>
+
+            {/* Stepper Navigation bar at bottom */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              background: 'var(--color-surface-white)',
+              padding: 'var(--space-4) var(--space-6)',
+              border: '1px solid var(--color-outline-variant)',
+              borderRadius: 'var(--radius-lg)',
+              marginTop: 'var(--space-2)'
+            }}>
               <Button type="button" variant="outlined" onClick={handleBack}>
                 Back
               </Button>
@@ -764,74 +830,111 @@ export function NewTaskPage() {
 
         {/* STEP 3: BUDGET */}
         {step === 3 && (
-          <div className="card">
-            <div className="card-header">
-              <h2 className="text-headline-sm" style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <DollarSign size={18} style={{ color: 'var(--color-secondary-mid)' }} />
-                Step 3: Set your budget
-              </h2>
-            </div>
-            <div className="card-body flex flex-col gap-5" style={{ padding: 'var(--space-6)' }}>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                {[
-                  { value: 'fixed', label: '💶 Whole Price (Fixed)', desc: 'You pay a solid fixed amount for the entire job' },
-                  { value: 'hourly', label: '⏱️ Price per hour', desc: 'Pay based on active working hours spent' },
-                  { value: 'open_to_offers', label: '🤝 Open for offers', desc: 'No budget declared, taskers propose prices' },
-                ].map((b) => (
-                  <label
-                    key={b.value}
-                    style={{
-                      padding: 'var(--space-4) var(--space-5)',
-                      border: `1.5px solid ${form.budgetType === b.value ? 'var(--color-secondary)' : 'var(--color-outline-variant)'}`,
-                      borderRadius: 'var(--radius-lg)',
-                      cursor: 'pointer',
-                      background: form.budgetType === b.value ? 'var(--color-surface-container-low)' : 'transparent',
-                      transition: 'all var(--transition-fast)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <input
-                        type="radio"
-                        name="budgetType"
-                        checked={form.budgetType === b.value}
-                        onChange={() => setFormVal('budgetType', b.value)}
-                        style={{ display: 'none' }}
+          <div className="flex flex-col gap-6">
+            <div className="bento-grid" style={{ gap: 'var(--space-6)' }}>
+              {/* Left Column: Budget inputs */}
+              <div className="bento-col-8 card" style={{ height: 'fit-content' }}>
+                <div className="card-header">
+                  <h2 className="text-headline-sm" style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <DollarSign size={18} style={{ color: 'var(--color-secondary-mid)' }} />
+                    Step 3: Set your budget
+                  </h2>
+                </div>
+                <div className="card-body flex flex-col gap-5" style={{ padding: 'var(--space-6)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                    {[
+                      { value: 'fixed', label: '💶 Whole Price (Fixed)', desc: 'You pay a solid fixed amount for the entire job' },
+                      { value: 'hourly', label: '⏱️ Price per hour', desc: 'Pay based on active working hours spent' },
+                      { value: 'open_to_offers', label: '🤝 Open for offers', desc: 'No budget declared, taskers propose prices' },
+                    ].map((b) => (
+                      <label
+                        key={b.value}
+                        style={{
+                          padding: 'var(--space-4) var(--space-5)',
+                          border: `1.5px solid ${form.budgetType === b.value ? 'var(--color-secondary)' : 'var(--color-outline-variant)'}`,
+                          borderRadius: 'var(--radius-lg)',
+                          cursor: 'pointer',
+                          background: form.budgetType === b.value ? 'var(--color-surface-container-low)' : 'transparent',
+                          transition: 'all var(--transition-fast)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}
+                      >
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <input
+                            type="radio"
+                            name="budgetType"
+                            checked={form.budgetType === b.value}
+                            onChange={() => setFormVal('budgetType', b.value)}
+                            style={{ display: 'none' }}
+                          />
+                          <div style={{ fontWeight: 700, fontSize: 'var(--text-body-sm)', color: 'var(--color-secondary)', marginBottom: '2px' }}>{b.label}</div>
+                          <div style={{ fontSize: 'var(--text-label-md)', color: 'var(--color-on-surface-variant)' }}>{b.desc}</div>
+                        </div>
+                        {form.budgetType === b.value && (
+                          <div style={{ background: 'var(--color-primary)', color: 'var(--color-on-primary)', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Check size={14} />
+                          </div>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+
+                  {form.budgetType !== 'open_to_offers' && (
+                    <div style={{ background: 'var(--color-surface-container-lowest)', padding: 'var(--space-4)', borderRadius: 'var(--radius)', border: '1px solid var(--color-outline-variant)', marginTop: '4px' }}>
+                      <Input
+                        label={form.budgetType === 'fixed' ? 'Budget Amount (€)' : 'Hourly Rate (€/hour)'}
+                        type="number"
+                        min="5"
+                        step="5"
+                        value={form.budget}
+                        onChange={update('budget')}
+                        error={errors.budget}
+                        required
+                        placeholder={form.budgetType === 'fixed' ? 'e.g. 150' : 'e.g. 35'}
+                        hint={form.budgetType === 'fixed' ? 'This is the total price for the service' : 'Estimated hourly rate you are willing to pay'}
                       />
-                      <div style={{ fontWeight: 700, fontSize: 'var(--text-body-sm)', color: 'var(--color-secondary)', marginBottom: '2px' }}>{b.label}</div>
-                      <div style={{ fontSize: 'var(--text-label-md)', color: 'var(--color-on-surface-variant)' }}>{b.desc}</div>
                     </div>
-                    {form.budgetType === b.value && (
-                      <div style={{ background: 'var(--color-primary)', color: 'var(--color-on-primary)', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Check size={14} />
-                      </div>
-                    )}
-                  </label>
-                ))}
+                  )}
+                </div>
               </div>
 
-              {form.budgetType !== 'open_to_offers' && (
-                <div style={{ background: 'var(--color-surface-container-lowest)', padding: 'var(--space-4)', borderRadius: 'var(--radius)', border: '1px solid var(--color-outline-variant)', marginTop: '4px' }}>
-                  <Input
-                    label={form.budgetType === 'fixed' ? 'Budget Amount (€)' : 'Hourly Rate (€/hour)'}
-                    type="number"
-                    min="5"
-                    step="5"
-                    value={form.budget}
-                    onChange={update('budget')}
-                    error={errors.budget}
-                    required
-                    placeholder={form.budgetType === 'fixed' ? 'e.g. 150' : 'e.g. 35'}
-                    hint={form.budgetType === 'fixed' ? 'This is the total price for the service' : 'Estimated hourly rate you are willing to pay'}
-                  />
+              {/* Right Column: Secure Payments info */}
+              <div className="bento-col-4 card" style={{ height: 'fit-content' }}>
+                <div className="card-header">
+                  <h2 className="text-headline-sm" style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Wallet size={16} style={{ color: 'var(--color-secondary-mid)' }} />
+                    Secure Payments
+                  </h2>
                 </div>
-              )}
-
+                <div className="card-body flex flex-col gap-4" style={{ padding: 'var(--space-5)', fontSize: 'var(--text-body-sm)', color: 'var(--color-on-surface-variant)', lineHeight: '1.6' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <div style={{ color: 'var(--color-status-success)', fontWeight: 'bold' }}>✓</div>
+                    <div>
+                      <strong>Escrow Trust:</strong> Your money is held securely by TaskBuddy until the job is done. It is only released when you approve.
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <div style={{ color: 'var(--color-status-success)', fontWeight: 'bold' }}>✓</div>
+                    <div>
+                      <strong>Fair Bids:</strong> Choose "Open for offers" to let taskers pitch competitive quotes based on their qualifications.
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="card-footer" style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-4) var(--space-6)' }}>
+
+            {/* Stepper Navigation bar at bottom */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              background: 'var(--color-surface-white)',
+              padding: 'var(--space-4) var(--space-6)',
+              border: '1px solid var(--color-outline-variant)',
+              borderRadius: 'var(--radius-lg)',
+              marginTop: 'var(--space-2)'
+            }}>
               <Button type="button" variant="outlined" onClick={handleBack}>
                 Back
               </Button>

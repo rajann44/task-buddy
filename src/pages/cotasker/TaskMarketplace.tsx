@@ -34,13 +34,15 @@ export function TaskMarketplace() {
   return (
     <div>
       {/* Commerzbank Greeting Header */}
-      <div className="page-topbar" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px', padding: 'var(--space-6) var(--space-8)' }}>
-        <h1 className="text-headline-xl text-primary" style={{ margin: 0, fontWeight: 700 }}>
-          {getGreeting()} {currentUser?.name}
-        </h1>
-        <p style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--text-body-sm)', margin: 0 }}>
-          Ihre Online-Plattform für Dienstleistungen — {tasks.length} task{tasks.length !== 1 ? 's' : ''} available.
-        </p>
+      <div className="page-topbar">
+        <div>
+          <h1 className="text-headline-md" style={{ margin: 0, fontWeight: 700 }}>
+            {getGreeting()}, {currentUser?.name.split(' ')[0]} 👋
+          </h1>
+          <p style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--text-body-sm)', margin: '4px 0 0 0' }}>
+            Ihre Online-Plattform für Dienstleistungen — {tasks.length} task{tasks.length !== 1 ? 's' : ''} available.
+          </p>
+        </div>
       </div>
 
       <div className="page-inner">
