@@ -51,7 +51,7 @@
     "delete_btn": "Delete Account..."
   },
   "login": {
-    "title": "TaskBuddy Login",
+    "title": "Dopzy Login",
     "select_profile": "Select a demo profile to sign in",
     "email": "Email Address",
     "password": "Password",
@@ -171,7 +171,7 @@
     "budget_rate_hint": "Estimated hourly rate you are willing to pay",
     "sec_payments": "Secure Payments",
     "escrow_trust": "Escrow Trust:",
-    "escrow_trust_desc": "Your money is held securely by TaskBuddy until the job is done. It is only released when you approve.",
+    "escrow_trust_desc": "Your money is held securely by Dopzy until the job is done. It is only released when you approve.",
     "fair_bids": "Fair Bids:",
     "fair_bids_desc": "Choose \"Open for offers\" to let taskers pitch competitive quotes based on their qualifications.",
     "step4_title": "Confirm and Post Your Task",

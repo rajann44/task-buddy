@@ -77,10 +77,10 @@ export function LoginPage() {
             fontWeight: 800, fontSize: '22px',
             color: 'var(--color-on-primary-container)',
           }}>
-            TB
+            D
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '20px', color: '#fff' }}>TaskBuddy</div>
+            <div style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '20px', color: '#fff' }}>Dopzy</div>
             <div style={{ fontSize: 'var(--text-label-md)', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Service Marketplace</div>
           </div>
         </div>
@@ -88,8 +88,8 @@ export function LoginPage() {
         {/* Hero text */}
         <div style={{ zIndex: 1 }}>
           <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '42px', fontWeight: 800, color: '#fff', lineHeight: 1.15, marginBottom: 'var(--space-4)', letterSpacing: '-0.02em' }}>
-            Get things done.<br />
-            <span style={{ color: 'var(--color-primary-container)' }}>Reliably.</span>
+            Your Tasks,<br />
+            <span style={{ color: 'var(--color-primary-container)' }}>Done.</span>
           </h1>
           <p style={{ fontSize: 'var(--text-body-lg)', color: 'rgba(255,255,255,0.75)', lineHeight: 'var(--lh-body-lg)', maxWidth: '380px' }}>
             Connect with vetted, trusted service providers in your area. From moving to cleaning — every task, matched perfectly.

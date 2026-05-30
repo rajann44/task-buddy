@@ -80,7 +80,7 @@ export function Sidebar() {
             lineHeight: 1.1,
             letterSpacing: '-0.01em',
           }}>
-            TaskBuddy
+            Dopzy
           </div>
           <div style={{
             fontSize: 'var(--text-label-md)',

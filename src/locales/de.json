@@ -51,7 +51,7 @@
     "delete_btn": "Konto löschen..."
   },
   "login": {
-    "title": "TaskBuddy Anmeldung",
+    "title": "Dopzy Anmeldung",
     "select_profile": "Wählen Sie ein Demoprofil zur Anmeldung",
     "email": "E-Mail-Adresse",
     "password": "Passwort",
@@ -171,7 +171,7 @@
     "budget_rate_hint": "Geschätzter Stundensatz, den Sie bereit sind zu zahlen",
     "sec_payments": "Sichere Zahlungen",
     "escrow_trust": "Treuhand-Schutz:",
-    "escrow_trust_desc": "Ihr Geld wird sicher von TaskBuddy verwahrt, bis die Arbeit erledigt ist. Die Freigabe erfolgt erst nach Ihrer Zustimmung.",
+    "escrow_trust_desc": "Ihr Geld wird sicher von Dopzy verwahrt, bis die Arbeit erledigt ist. Die Freigabe erfolgt erst nach Ihrer Zustimmung.",
     "fair_bids": "Faire Angebote:",
     "fair_bids_desc": "Wählen Sie \"Offen für Angebote\", um wettbewerbsfähige Angebote basierend auf Qualifikationen zu erhalten.",
     "step4_title": "Details prüfen und Aufgabe veröffentlichen",
