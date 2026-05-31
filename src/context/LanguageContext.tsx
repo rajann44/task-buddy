@@ -16,7 +16,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
-    return (localStorage.getItem('taskbuddy_lang') as Language) || 'de'; // Default to German (de) for Commerzbank theme
+    return (localStorage.getItem('taskbuddy_lang') as Language) || 'en'; // Default to English (en)
   });
 
   const setLanguage = (lang: Language) => {
@@ -28,7 +28,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleLangChange = () => {
-      const stored = (localStorage.getItem('taskbuddy_lang') as Language) || 'de';
+      const stored = (localStorage.getItem('taskbuddy_lang') as Language) || 'en';
       if (stored !== language) {
         setLanguageState(stored);
       }
@@ -38,7 +38,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, [language]);
 
   const t = (path: string): string => {
-    const dictionary = translationDictionaries[language] || de;
+    const dictionary = translationDictionaries[language] || en;
     const parts = path.split('.');
     let current = dictionary;
     for (const part of parts) {
