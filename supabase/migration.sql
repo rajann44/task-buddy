@@ -322,3 +322,48 @@ alter default privileges in schema public grant select, insert, update, delete o
 alter default privileges in schema public grant usage, select on sequences to postgres, anon, authenticated, service_role;
 alter default privileges in schema public grant execute on functions to postgres, anon, authenticated, service_role;
 
+-- ─── 7. OFFERS COUNT TRIGGER ON TASKS ─────────────────────────────────────────
+-- Track count of offers for each task directly on the tasks table to avoid RLS read limitations
+alter table public.tasks add column if not exists offers_count integer not null default 0;
+
+update public.tasks t
+set offers_count = (
+  select count(*)
+  from public.offers o
+  where o.task_id = t.id and o.status != 'withdrawn'
+);
+
+create or replace function public.handle_offer_count_change()
+returns trigger
+language plpgsql
+security definer
+as $$
+begin
+  if (TG_OP = 'INSERT') then
+    update public.tasks
+    set offers_count = offers_count + 1
+    where id = new.task_id;
+  elsif (TG_OP = 'DELETE') then
+    update public.tasks
+    set offers_count = offers_count - 1
+    where id = old.task_id;
+  elsif (TG_OP = 'UPDATE') then
+    if (old.status != 'withdrawn' and new.status = 'withdrawn') then
+      update public.tasks
+      set offers_count = offers_count - 1
+      where id = new.task_id;
+    elsif (old.status = 'withdrawn' and new.status != 'withdrawn') then
+      update public.tasks
+      set offers_count = offers_count + 1
+      where id = new.task_id;
+    end if;
+  end if;
+  return null;
+end;
+$$;
+
+drop trigger if exists on_offer_count_change on public.offers;
+create trigger on_offer_count_change
+  after insert or delete or update of status on public.offers
+  for each row execute function public.handle_offer_count_change();
+

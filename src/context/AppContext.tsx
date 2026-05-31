@@ -523,7 +523,7 @@ const mapTask = (t: any): Task => ({
   assignedCoTaskerId: t.assigned_cotasker_id || undefined,
   status: t.status,
   createdAt: t.created_at,
-  offersCount: 0,
+  offersCount: t.offers_count || 0,
   moderationStatus: t.moderation_status,
 });
 
@@ -642,7 +642,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             assignedCoTaskerId: t.assigned_cotasker_id || undefined,
             status: t.status,
             createdAt: t.created_at,
-            offersCount: 0,
+            offersCount: t.offers_count || 0,
             moderationStatus: t.moderation_status,
           }));
 

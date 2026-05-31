@@ -130,11 +130,9 @@ export function ClientTaskDetail() {
       if (taskErr) throw taskErr;
 
       // 4. Record wallet transaction
-      const txId = generateId('wallet');
       const { error: walletErr } = await supabase
         .from('wallet_transactions')
         .insert({
-          id: txId,
           task_id: task.id,
           client_id: currentUser!.id,
           cotasker_id: acceptConfirm.coTaskerId,
@@ -146,7 +144,7 @@ export function ClientTaskDetail() {
 
       // 5. Send notification to CoTasker
       const newNotif = {
-        id: generateId('notif'),
+        id: 'temp-accept-notif',
         userId: acceptConfirm.coTaskerId,
         type: 'offer_accepted' as const,
         title: 'Your offer was accepted!',
@@ -159,7 +157,6 @@ export function ClientTaskDetail() {
       await supabase
         .from('notifications')
         .insert({
-          id: newNotif.id,
           user_id: newNotif.userId,
           type: newNotif.type,
           title: newNotif.title,
@@ -264,22 +261,28 @@ export function ClientTaskDetail() {
     };
 
     try {
-      const { error } = await supabase
+      const { data: dbReview, error } = await supabase
         .from('reviews')
         .insert({
-          id: review.id,
           task_id: review.taskId,
           from_user_id: review.fromUserId,
           to_user_id: review.toUserId,
           rating: review.rating,
           comment: review.comment,
           created_at: review.createdAt
-        });
+        })
+        .select('id')
+        .single();
       if (error) throw error;
 
-      dispatch(addReviewAction(review));
+      const newReview = {
+        ...review,
+        id: dbReview.id
+      };
+
+      dispatch(addReviewAction(newReview));
       posthog.capture('review_submitted', {
-        review_id: review.id,
+        review_id: newReview.id,
         task_id: task.id,
         category: task.category,
         rating: reviewRating,

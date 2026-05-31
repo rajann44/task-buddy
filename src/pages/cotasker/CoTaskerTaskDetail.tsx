@@ -36,7 +36,6 @@ export function CoTaskerTaskDetail() {
   const myOffer = state.offers.find(
     (o) => o.taskId === id && o.coTaskerId === currentUser?.id && o.status !== 'withdrawn'
   );
-  const allOffers = state.offers.filter((o) => o.taskId === id);
 
   const [clientUser, setClientUser] = useState<UserType | null>(null);
   const [showOfferForm, setShowOfferForm] = useState(false);
@@ -572,7 +571,7 @@ export function CoTaskerTaskDetail() {
               <div className="card-body" style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', fontSize: 'var(--text-body-sm)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--color-on-surface-variant)' }}>Offers submitted</span>
-                  <span style={{ fontWeight: 700 }}>{allOffers.filter(o => o.status !== 'withdrawn').length}</span>
+                  <span style={{ fontWeight: 700 }}>{task.offersCount}</span>
                 </div>
               </div>
             </div>
