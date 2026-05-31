@@ -20,7 +20,7 @@ import { OfferCard } from '../../components/offers/OfferCard';
 import { ConfirmModal, Modal } from '../../components/ui/Modal';
 import { Avatar } from '../../components/ui/Avatar';
 import { profileService } from '../../services/profileService';
-import { formatDate, formatCurrency, generateId } from '../../utils/formatters';
+import { formatDate, formatCurrency } from '../../utils/formatters';
 import { CATEGORY_ICONS } from '../../utils/constants';
 import type { Offer, User as UserType } from '../../types';
 import { supabase } from '../../utils/supabaseClient';
@@ -79,51 +79,55 @@ export function CoTaskerTaskDetail() {
     if (!questionText.trim()) return;
     setIsSubmittingQuestion(true);
 
-    const newRequest = {
-      id: generateId('req'),
-      taskId: task.id,
-      senderId: currentUser!.id,
-      receiverId: task.clientId,
-      question: questionText.trim(),
-      status: 'pending' as const,
-      createdAt: new Date().toISOString()
-    };
-
     try {
-      const { error } = await supabase
+      const { data: reqData, error } = await supabase
         .from('chat_requests')
         .insert({
-          id: newRequest.id,
-          task_id: newRequest.taskId,
-          sender_id: newRequest.senderId,
-          receiver_id: newRequest.receiverId,
-          question: newRequest.question,
-          status: newRequest.status,
-          created_at: newRequest.createdAt
-        });
+          task_id: task.id,
+          sender_id: currentUser!.id,
+          receiver_id: task.clientId,
+          question: questionText.trim(),
+          status: 'pending'
+        })
+        .select('id, created_at')
+        .single();
 
       if (error) throw error;
 
-      await supabase.from('notifications').insert({
-        id: generateId('notif'),
-        user_id: task.clientId,
-        type: 'new_offer',
-        title: 'New task inquiry',
-        message: `${currentUser!.name} sent a question about your task "${task.title}".`,
-        is_read: false,
-        created_at: new Date().toISOString(),
-        link_to: '/messages'
-      });
+      const { data: notifData, error: notifErr } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: task.clientId,
+          type: 'new_offer',
+          title: 'New task inquiry',
+          message: `${currentUser!.name} sent a question about your task "${task.title}".`,
+          is_read: false,
+          link_to: '/messages'
+        })
+        .select('id, created_at')
+        .single();
+
+      if (notifErr) throw notifErr;
+
+      const newRequest = {
+        id: reqData.id,
+        taskId: task.id,
+        senderId: currentUser!.id,
+        receiverId: task.clientId,
+        question: questionText.trim(),
+        status: 'pending' as const,
+        createdAt: reqData.created_at
+      };
 
       dispatch(createChatRequestAction(newRequest));
       dispatch(addNotificationAction({
-        id: generateId('notif'),
+        id: notifData.id,
         userId: task.clientId,
         type: 'new_offer',
         title: 'New task inquiry',
         message: `${currentUser!.name} sent a question about your task "${task.title}".`,
         isRead: false,
-        createdAt: new Date().toISOString(),
+        createdAt: notifData.created_at,
         linkTo: '/messages',
       }));
 
@@ -140,32 +144,33 @@ export function CoTaskerTaskDetail() {
 
   const handleSubmitOffer = async (data: { price: number; message: string; estimatedHours: number }) => {
     setIsLoading(true);
-    const newOffer: Offer = {
-      id: generateId('offer'),
-      taskId: task.id,
-      coTaskerId: currentUser!.id,
-      price: data.price,
-      message: data.message,
-      estimatedHours: data.estimatedHours,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    };
 
     try {
       // 1. Insert Offer
-      const { error: offerErr } = await supabase
+      const { data: offerData, error: offerErr } = await supabase
         .from('offers')
         .insert({
-          id: newOffer.id,
-          task_id: newOffer.taskId,
-          cotasker_id: newOffer.coTaskerId,
-          price: newOffer.price,
-          message: newOffer.message,
-          estimated_hours: newOffer.estimatedHours,
-          status: newOffer.status,
-          created_at: newOffer.createdAt
-        });
+          task_id: task.id,
+          cotasker_id: currentUser!.id,
+          price: data.price,
+          message: data.message,
+          estimated_hours: data.estimatedHours,
+          status: 'pending'
+        })
+        .select('id, created_at')
+        .single();
       if (offerErr) throw offerErr;
+
+      const newOffer: Offer = {
+        id: offerData.id,
+        taskId: task.id,
+        coTaskerId: currentUser!.id,
+        price: data.price,
+        message: data.message,
+        estimatedHours: data.estimatedHours,
+        status: 'pending',
+        createdAt: offerData.created_at,
+      };
 
       // 2. Update Task Status to receiving_offers if it's open
       if (task.status === 'open') {
@@ -180,20 +185,22 @@ export function CoTaskerTaskDetail() {
       const existingConv = state.conversations.find(
         (c) => c.taskId === task.id && c.participantIds.includes(currentUser!.id)
       );
-      const convId = existingConv?.id || generateId('conv');
+      let convId: string;
       
       if (!existingConv) {
-        const { error: convErr } = await supabase
+        const { data: convData, error: convErr } = await supabase
           .from('conversations')
           .insert({
-            id: convId,
             participant_ids: [currentUser!.id, task.clientId],
             last_message: data.message,
             last_message_at: new Date().toISOString(),
             unread_count: 1,
             task_id: task.id
-          });
+          })
+          .select('id')
+          .single();
         if (convErr) throw convErr;
+        convId = convData.id;
 
         dispatch(createConversationAction({
           id: convId,
@@ -204,6 +211,7 @@ export function CoTaskerTaskDetail() {
           taskId: task.id
         }));
       } else {
+        convId = existingConv.id;
         await supabase
           .from('conversations')
           .update({
@@ -214,47 +222,50 @@ export function CoTaskerTaskDetail() {
       }
 
       // 3. Send Message
+      const { data: msgData, error: msgErr } = await supabase
+        .from('chat_messages')
+        .insert({
+          conversation_id: convId,
+          sender_id: currentUser!.id,
+          text: `Offer Submitted: ${formatCurrency(data.price)}. "${data.message}"`
+        })
+        .select('id, created_at')
+        .single();
+      if (msgErr) throw msgErr;
+
       const newMessage = {
-        id: generateId('msg'),
+        id: msgData.id,
         conversationId: convId,
         senderId: currentUser!.id,
         text: `Offer Submitted: ${formatCurrency(data.price)}. "${data.message}"`,
-        createdAt: new Date().toISOString()
+        createdAt: msgData.created_at
       };
 
-      const { error: msgErr } = await supabase
-        .from('chat_messages')
-        .insert({
-          id: newMessage.id,
-          conversation_id: newMessage.conversationId,
-          sender_id: newMessage.senderId,
-          text: newMessage.text,
-          created_at: newMessage.createdAt
-        });
-      if (msgErr) throw msgErr;
-
       // 4. Create Notification
+      const { data: notifData, error: notifErr } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: task.clientId,
+          type: 'new_offer',
+          title: 'New offer received',
+          message: `${currentUser!.name} sent an offer of ${formatCurrency(data.price)} for your task "${task.title}".`,
+          is_read: false,
+          link_to: `/tasks/${task.id}`
+        })
+        .select('id, created_at')
+        .single();
+      if (notifErr) throw notifErr;
+
       const newNotif = {
-        id: generateId('notif'),
+        id: notifData.id,
         userId: task.clientId,
         type: 'new_offer' as const,
         title: 'New offer received',
         message: `${currentUser!.name} sent an offer of ${formatCurrency(data.price)} for your task "${task.title}".`,
         isRead: false,
-        createdAt: new Date().toISOString(),
+        createdAt: notifData.created_at,
         linkTo: `/tasks/${task.id}`,
       };
-
-      await supabase.from('notifications').insert({
-        id: newNotif.id,
-        user_id: newNotif.userId,
-        type: newNotif.type,
-        title: newNotif.title,
-        message: newNotif.message,
-        is_read: newNotif.isRead,
-        created_at: newNotif.createdAt,
-        link_to: newNotif.linkTo
-      });
 
       dispatch(createOfferAction(newOffer));
       dispatch(sendChatMessageAction(newMessage));
