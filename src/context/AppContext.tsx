@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import type { AppState, AppAction, Task, Offer, Review, Notification, ChatRequest, ChatMessage, Conversation } from '../types';
+import type { AppState, AppAction, Task, Offer, Review, Notification, ChatRequest, ChatMessage, Conversation, User, UserRole } from '../types';
 import { MOCK_TASKS } from '../data/tasks';
 import { MOCK_OFFERS } from '../data/offers';
 import { MOCK_REVIEWS } from '../data/reviews';
@@ -28,6 +28,12 @@ const initialState: AppState = {
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
+    case 'SET_USERS':
+      return {
+        ...state,
+        users: action.payload,
+      };
+
     case 'SET_TASKS':
       return {
         ...state,
@@ -369,7 +375,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    async function fetchUsers() {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (data) {
+          const mappedUsers: User[] = data.map((u: any) => ({
+            id: u.id,
+            email: u.email,
+            role: u.role as UserRole,
+            name: u.name,
+            avatarUrl: u.avatar_url || undefined,
+            coTaskerStatus: u.co_tasker_status || 'none',
+            isDisabled: u.is_disabled,
+            createdAt: u.created_at,
+            password: '',
+          }));
+
+          // Merge db users and non-conflicting mock users
+          const existingIds = new Set(mappedUsers.map((u) => u.id));
+          const nonDuplicateMocks = MOCK_USERS.filter((u) => !existingIds.has(u.id));
+
+          dispatch({ type: 'SET_USERS', payload: [...mappedUsers, ...nonDuplicateMocks] });
+        }
+      } catch (err) {
+        console.error('Error loading users from Supabase:', err);
+      }
+    }
+
     fetchTasks();
+    fetchUsers();
   }, []);
 
   return (
