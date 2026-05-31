@@ -55,8 +55,8 @@ export function OfferForm({ taskId: _taskId, coTaskerId: _coTaskerId, existingOf
         <Input
           label="Estimated Hours"
           type="number"
-          min="0.5"
-          step="0.5"
+          min="1"
+          step="1"
           value={estimatedHours}
           onChange={(e) => setEstimatedHours(e.target.value)}
           error={errors.estimatedHours}

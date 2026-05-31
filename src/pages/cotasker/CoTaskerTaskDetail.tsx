@@ -156,7 +156,7 @@ export function CoTaskerTaskDetail() {
           cotasker_id: currentUser!.id,
           price: data.price,
           message: data.message,
-          estimated_hours: data.estimatedHours,
+          estimated_hours: Math.round(data.estimatedHours),
           status: 'pending',
           created_at: new Date().toISOString()
         })
