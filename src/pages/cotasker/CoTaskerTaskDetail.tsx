@@ -23,6 +23,7 @@ import { profileService } from '../../services/profileService';
 import { formatDate, formatCurrency, generateId } from '../../utils/formatters';
 import { CATEGORY_ICONS } from '../../utils/constants';
 import type { Offer, User as UserType } from '../../types';
+import { supabase } from '../../utils/supabaseClient';
 
 export function CoTaskerTaskDetail() {
   const { id } = useParams<{ id: string }>();
@@ -77,7 +78,6 @@ export function CoTaskerTaskDetail() {
   const handleAskQuestion = async () => {
     if (!questionText.trim()) return;
     setIsSubmittingQuestion(true);
-    await new Promise((r) => setTimeout(r, 600));
 
     const newRequest = {
       id: generateId('req'),
@@ -89,28 +89,57 @@ export function CoTaskerTaskDetail() {
       createdAt: new Date().toISOString()
     };
 
-    dispatch(createChatRequestAction(newRequest));
+    try {
+      const { error } = await supabase
+        .from('chat_requests')
+        .insert({
+          id: newRequest.id,
+          task_id: newRequest.taskId,
+          sender_id: newRequest.senderId,
+          receiver_id: newRequest.receiverId,
+          question: newRequest.question,
+          status: newRequest.status,
+          created_at: newRequest.createdAt
+        });
 
-    dispatch(addNotificationAction({
-      id: generateId('notif'),
-      userId: task.clientId,
-      type: 'new_offer',
-      title: 'New task inquiry',
-      message: `${currentUser!.name} sent a question about your task "${task.title}".`,
-      isRead: false,
-      createdAt: new Date().toISOString(),
-      linkTo: '/messages',
-    }));
+      if (error) throw error;
 
-    showToast('Your question request has been sent to the client!', 'success');
-    setQuestionText('');
-    setShowQuestionModal(false);
-    setIsSubmittingQuestion(false);
+      await supabase.from('notifications').insert({
+        id: generateId('notif'),
+        user_id: task.clientId,
+        type: 'new_offer',
+        title: 'New task inquiry',
+        message: `${currentUser!.name} sent a question about your task "${task.title}".`,
+        is_read: false,
+        created_at: new Date().toISOString(),
+        link_to: '/messages'
+      });
+
+      dispatch(createChatRequestAction(newRequest));
+      dispatch(addNotificationAction({
+        id: generateId('notif'),
+        userId: task.clientId,
+        type: 'new_offer',
+        title: 'New task inquiry',
+        message: `${currentUser!.name} sent a question about your task "${task.title}".`,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        linkTo: '/messages',
+      }));
+
+      showToast('Your question request has been sent to the client!', 'success');
+      setQuestionText('');
+      setShowQuestionModal(false);
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Failed to send question request', 'error');
+    } finally {
+      setIsSubmittingQuestion(false);
+    }
   };
 
   const handleSubmitOffer = async (data: { price: number; message: string; estimatedHours: number }) => {
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 500));
     const newOffer: Offer = {
       id: generateId('offer'),
       taskId: task.id,
@@ -121,80 +150,179 @@ export function CoTaskerTaskDetail() {
       status: 'pending',
       createdAt: new Date().toISOString(),
     };
-    dispatch(createOfferAction(newOffer));
-    posthog.capture('offer_submitted', {
-      offer_id: newOffer.id,
-      task_id: task.id,
-      category: task.category,
-      price: data.price,
-      estimated_hours: data.estimatedHours,
-    });
 
-    // Auto-create chat conversation for direct offer submission
-    const existingConv = state.conversations.find(
-      (c) => c.taskId === task.id && c.participantIds.includes(currentUser!.id)
-    );
-    const convId = existingConv?.id || generateId('conv');
-    
-    if (!existingConv) {
-      const newConversation = {
-        id: convId,
-        participantIds: [currentUser!.id, task.clientId],
-        lastMessage: data.message,
-        lastMessageAt: new Date().toISOString(),
-        unreadCount: 1,
-        taskId: task.id
+    try {
+      // 1. Insert Offer
+      const { error: offerErr } = await supabase
+        .from('offers')
+        .insert({
+          id: newOffer.id,
+          task_id: newOffer.taskId,
+          cotasker_id: newOffer.coTaskerId,
+          price: newOffer.price,
+          message: newOffer.message,
+          estimated_hours: newOffer.estimatedHours,
+          status: newOffer.status,
+          created_at: newOffer.createdAt
+        });
+      if (offerErr) throw offerErr;
+
+      // 2. Update Task Status to receiving_offers if it's open
+      if (task.status === 'open') {
+        const { error: taskErr } = await supabase
+          .from('tasks')
+          .update({ status: 'receiving_offers' })
+          .eq('id', task.id);
+        if (taskErr) throw taskErr;
+      }
+
+      // Auto-create chat conversation for direct offer submission
+      const existingConv = state.conversations.find(
+        (c) => c.taskId === task.id && c.participantIds.includes(currentUser!.id)
+      );
+      const convId = existingConv?.id || generateId('conv');
+      
+      if (!existingConv) {
+        const { error: convErr } = await supabase
+          .from('conversations')
+          .insert({
+            id: convId,
+            participant_ids: [currentUser!.id, task.clientId],
+            last_message: data.message,
+            last_message_at: new Date().toISOString(),
+            unread_count: 1,
+            task_id: task.id
+          });
+        if (convErr) throw convErr;
+
+        dispatch(createConversationAction({
+          id: convId,
+          participantIds: [currentUser!.id, task.clientId],
+          lastMessage: data.message,
+          lastMessageAt: new Date().toISOString(),
+          unreadCount: 1,
+          taskId: task.id
+        }));
+      } else {
+        await supabase
+          .from('conversations')
+          .update({
+            last_message: data.message,
+            last_message_at: new Date().toISOString()
+          })
+          .eq('id', convId);
+      }
+
+      // 3. Send Message
+      const newMessage = {
+        id: generateId('msg'),
+        conversationId: convId,
+        senderId: currentUser!.id,
+        text: `Offer Submitted: ${formatCurrency(data.price)}. "${data.message}"`,
+        createdAt: new Date().toISOString()
       };
-      dispatch(createConversationAction(newConversation));
+
+      const { error: msgErr } = await supabase
+        .from('chat_messages')
+        .insert({
+          id: newMessage.id,
+          conversation_id: newMessage.conversationId,
+          sender_id: newMessage.senderId,
+          text: newMessage.text,
+          created_at: newMessage.createdAt
+        });
+      if (msgErr) throw msgErr;
+
+      // 4. Create Notification
+      const newNotif = {
+        id: generateId('notif'),
+        userId: task.clientId,
+        type: 'new_offer' as const,
+        title: 'New offer received',
+        message: `${currentUser!.name} sent an offer of ${formatCurrency(data.price)} for your task "${task.title}".`,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        linkTo: `/tasks/${task.id}`,
+      };
+
+      await supabase.from('notifications').insert({
+        id: newNotif.id,
+        user_id: newNotif.userId,
+        type: newNotif.type,
+        title: newNotif.title,
+        message: newNotif.message,
+        is_read: newNotif.isRead,
+        created_at: newNotif.createdAt,
+        link_to: newNotif.linkTo
+      });
+
+      dispatch(createOfferAction(newOffer));
+      dispatch(sendChatMessageAction(newMessage));
+      dispatch(addNotificationAction(newNotif));
+
+      posthog.capture('offer_submitted', {
+        offer_id: newOffer.id,
+        task_id: task.id,
+        category: task.category,
+        price: data.price,
+        estimated_hours: data.estimatedHours,
+      });
+
+      showToast('Offer sent successfully!', 'success');
+      setShowOfferForm(false);
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Failed to submit offer', 'error');
+    } finally {
+      setIsLoading(false);
     }
-
-    const newMessage = {
-      id: generateId('msg'),
-      conversationId: convId,
-      senderId: currentUser!.id,
-      text: `Offer Submitted: ${formatCurrency(data.price)}. "${data.message}"`,
-      createdAt: new Date().toISOString()
-    };
-    dispatch(sendChatMessageAction(newMessage));
-
-    dispatch(addNotificationAction({
-      id: generateId('notif'),
-      userId: task.clientId,
-      type: 'new_offer',
-      title: 'New offer received',
-      message: `${currentUser!.name} sent an offer of ${formatCurrency(data.price)} for your task "${task.title}".`,
-      isRead: false,
-      createdAt: new Date().toISOString(),
-      linkTo: `/tasks/${task.id}`,
-    }));
-    showToast('Offer sent successfully!', 'success');
-    setShowOfferForm(false);
-    setIsLoading(false);
   };
 
   const handleWithdraw = async () => {
     if (!myOffer) return;
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 400));
-    dispatch(withdrawOfferAction(myOffer.id));
-    posthog.capture('offer_withdrawn', {
-      offer_id: myOffer.id,
-      task_id: task.id,
-      category: task.category,
-    });
-    showToast('Offer withdrawn.', 'info');
-    setWithdrawConfirm(false);
-    setIsLoading(false);
+    try {
+      const { error } = await supabase
+        .from('offers')
+        .update({ status: 'withdrawn' })
+        .eq('id', myOffer.id);
+      if (error) throw error;
+
+      dispatch(withdrawOfferAction(myOffer.id));
+      posthog.capture('offer_withdrawn', {
+        offer_id: myOffer.id,
+        task_id: task.id,
+        category: task.category,
+      });
+      showToast('Offer withdrawn.', 'info');
+      setWithdrawConfirm(false);
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Failed to withdraw offer', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleUpdateStatus = async () => {
     if (!updateStatusConfirm) return;
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 400));
-    dispatch(updateTaskStatusAction(task.id, updateStatusConfirm as any));
-    showToast(`Task status updated to "${updateStatusConfirm}".`, 'success');
-    setUpdateStatusConfirm(null);
-    setIsLoading(false);
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ status: updateStatusConfirm })
+        .eq('id', task.id);
+      if (error) throw error;
+
+      dispatch(updateTaskStatusAction(task.id, updateStatusConfirm as any));
+      showToast(`Task status updated to "${updateStatusConfirm}".`, 'success');
+      setUpdateStatusConfirm(null);
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Failed to update task status', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

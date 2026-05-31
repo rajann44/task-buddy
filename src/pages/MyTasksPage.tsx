@@ -8,6 +8,7 @@ import { formatCurrency, formatDate, formatRelativeTime } from '../utils/formatt
 import { CATEGORY_ICONS } from '../utils/constants';
 import { useTranslation } from '../context/LanguageContext';
 import posthog from '../utils/posthogClient';
+import { supabase } from '../utils/supabaseClient';
 
 export function MyTasksPage() {
   const { currentUser, updateCurrentUser } = useAuth();
@@ -26,13 +27,42 @@ export function MyTasksPage() {
     e.preventDefault();
     if (!bio.trim() || !rate || !currentUser) return;
     setIsSubmitting(true);
-    await new Promise((r) => setTimeout(r, 600));
-    dispatch(applyCoTaskerAction(currentUser.id));
-    posthog.capture('cotasker_application_submitted', {
-      hourly_rate: Number(rate),
-    });
-    updateCurrentUser({ coTaskerStatus: 'pending' });
-    setIsSubmitting(false);
+    
+    try {
+      // 1. Update user co_tasker_status in users table
+      const { error: userError } = await supabase
+        .from('users')
+        .update({ co_tasker_status: 'pending' })
+        .eq('id', currentUser.id);
+      
+      if (userError) throw userError;
+
+      // 2. Upsert the cotasker profile
+      const skillsArray = skills.split(',').map((s) => s.trim()).filter(Boolean);
+      const { error: profileError } = await supabase
+        .from('cotasker_profiles')
+        .upsert({
+          user_id: currentUser.id,
+          bio: bio.trim(),
+          skills: skillsArray,
+          hourly_rate: Number(rate),
+          location: 'Berlin',
+          availability: 'Flexible',
+        });
+
+      if (profileError) throw profileError;
+
+      dispatch(applyCoTaskerAction(currentUser.id));
+      posthog.capture('cotasker_application_submitted', {
+        hourly_rate: Number(rate),
+      });
+      updateCurrentUser({ coTaskerStatus: 'pending' });
+    } catch (err: any) {
+      console.error('Failed to submit Co-Tasker application:', err);
+      alert(err.message || 'Failed to submit application to database.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const dbUser = state.users.find((u) => u.id === currentUser?.id) || currentUser;

@@ -13,9 +13,9 @@ import {
 import { useToast } from '../../context/ToastContext';
 import { Avatar } from '../../components/ui/Avatar';
 import { formatCurrency, generateId } from '../../utils/formatters';
-import { MOCK_USERS } from '../../data/users';
 import { CoTaskerProfileDrawer } from '../../components/profile/CoTaskerProfileDrawer';
 import { useTranslation } from '../../context/LanguageContext';
+import { supabase } from '../../utils/supabaseClient';
 
 export function MessagesPage() {
   const { currentUser } = useAuth();
@@ -80,11 +80,11 @@ export function MessagesPage() {
 
   // Selected participant / sender profiles
   const activeChatParticipant = activeConversation
-    ? MOCK_USERS.find((u) => u.id === activeConversation.participantIds.find((id) => id !== currentUser.id))
+    ? state.users.find((u) => u.id === activeConversation.participantIds.find((id) => id !== currentUser.id))
     : null;
 
   const activeRequestSender = activeRequest
-    ? MOCK_USERS.find((u) => u.id === activeRequest.senderId)
+    ? state.users.find((u) => u.id === activeRequest.senderId)
     : null;
 
   // Selected task
@@ -113,7 +113,7 @@ export function MessagesPage() {
     : [];
 
   // ─── Handlers ───
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageText.trim() || !activeConversation) return;
 
@@ -125,11 +125,36 @@ export function MessagesPage() {
       createdAt: new Date().toISOString()
     };
 
-    dispatch(sendChatMessageAction(newMessage));
-    setMessageText('');
+    try {
+      const { error: msgErr } = await supabase
+        .from('chat_messages')
+        .insert({
+          id: newMessage.id,
+          conversation_id: newMessage.conversationId,
+          sender_id: newMessage.senderId,
+          text: newMessage.text,
+          created_at: newMessage.createdAt
+        });
+      if (msgErr) throw msgErr;
+
+      const { error: convErr } = await supabase
+        .from('conversations')
+        .update({
+          last_message: newMessage.text,
+          last_message_at: newMessage.createdAt
+        })
+        .eq('id', newMessage.conversationId);
+      if (convErr) throw convErr;
+
+      dispatch(sendChatMessageAction(newMessage));
+      setMessageText('');
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Failed to send message', 'error');
+    }
   };
 
-  const handleAcceptRequest = () => {
+  const handleAcceptRequest = async () => {
     if (!activeRequest || !activeTask) return;
 
     const convId = generateId('conv');
@@ -150,31 +175,143 @@ export function MessagesPage() {
       createdAt: activeRequest.createdAt
     };
 
-    dispatch(respondChatRequestAction(activeRequest.id, 'accepted', conversation, systemMessage));
-    showToast(t('messages.toast_accepted'), 'success');
-    
-    // Switch tabs and select the new chat room
-    setSearchParams({ conv: convId });
+    try {
+      const { error: convErr } = await supabase
+        .from('conversations')
+        .insert({
+          id: conversation.id,
+          participant_ids: conversation.participantIds,
+          last_message: conversation.lastMessage,
+          last_message_at: conversation.lastMessageAt,
+          unread_count: conversation.unreadCount,
+          task_id: conversation.taskId
+        });
+      if (convErr) throw convErr;
+
+      const { error: msgErr } = await supabase
+        .from('chat_messages')
+        .insert({
+          id: systemMessage.id,
+          conversation_id: systemMessage.conversationId,
+          sender_id: systemMessage.senderId,
+          text: systemMessage.text,
+          created_at: systemMessage.createdAt
+        });
+      if (msgErr) throw msgErr;
+
+      const { error: reqErr } = await supabase
+        .from('chat_requests')
+        .update({ status: 'accepted' })
+        .eq('id', activeRequest.id);
+      if (reqErr) throw reqErr;
+
+      dispatch(respondChatRequestAction(activeRequest.id, 'accepted', conversation, systemMessage));
+      showToast(t('messages.toast_accepted'), 'success');
+      
+      // Switch tabs and select the new chat room
+      setSearchParams({ conv: convId });
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Failed to accept request', 'error');
+    }
   };
 
-  const handleDeclineRequest = () => {
+  const handleDeclineRequest = async () => {
     if (!activeRequest) return;
-    dispatch(respondChatRequestAction(activeRequest.id, 'declined'));
-    showToast(t('messages.toast_declined'), 'info');
-    setSelectedId(null);
-    setSearchParams({});
+    try {
+      const { error } = await supabase
+        .from('chat_requests')
+        .delete()
+        .eq('id', activeRequest.id);
+      if (error) throw error;
+
+      dispatch(respondChatRequestAction(activeRequest.id, 'declined'));
+      showToast(t('messages.toast_declined'), 'info');
+      setSelectedId(null);
+      setSearchParams({});
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Failed to decline request', 'error');
+    }
   };
 
-  const handleAcceptOffer = () => {
+  const handleAcceptOffer = async () => {
     if (!activeOffer || !activeTask) return;
-    dispatch(acceptOfferAction(activeOffer.id, activeTask.id, activeOffer.coTaskerId));
-    showToast(t('messages.toast_offer_accepted'), 'success');
+    try {
+      // 1. Update accepted offer status
+      const { error: acceptErr } = await supabase
+        .from('offers')
+        .update({ status: 'accepted' })
+        .eq('id', activeOffer.id);
+      if (acceptErr) throw acceptErr;
+
+      // 2. Reject other offers
+      const { error: rejectErr } = await supabase
+        .from('offers')
+        .update({ status: 'rejected' })
+        .eq('task_id', activeTask.id)
+        .neq('id', activeOffer.id);
+      if (rejectErr) throw rejectErr;
+
+      // 3. Update task
+      const { error: taskErr } = await supabase
+        .from('tasks')
+        .update({ status: 'assigned', assigned_cotasker_id: activeOffer.coTaskerId })
+        .eq('id', activeTask.id);
+      if (taskErr) throw taskErr;
+
+      // 4. Record wallet transaction
+      const txId = generateId('wallet');
+      const { error: walletErr } = await supabase
+        .from('wallet_transactions')
+        .insert({
+          id: txId,
+          task_id: activeTask.id,
+          client_id: currentUser!.id,
+          cotasker_id: activeOffer.coTaskerId,
+          amount: activeOffer.price,
+          status: 'reserved',
+          created_at: new Date().toISOString()
+        });
+      if (walletErr) throw walletErr;
+
+      // 5. Send notification to CoTasker
+      const newNotif = {
+        id: generateId('notif'),
+        userId: activeOffer.coTaskerId,
+        type: 'offer_accepted' as const,
+        title: 'Your offer was accepted!',
+        message: `Your offer for "${activeTask.title}" has been accepted. Check your jobs to get started.`,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        linkTo: '/my-tasks?tab=tasker',
+      };
+
+      await supabase
+        .from('notifications')
+        .insert({
+          id: newNotif.id,
+          user_id: newNotif.userId,
+          type: newNotif.type,
+          title: newNotif.title,
+          message: newNotif.message,
+          is_read: newNotif.isRead,
+          created_at: newNotif.createdAt,
+          link_to: newNotif.linkTo
+        });
+
+      dispatch(acceptOfferAction(activeOffer.id, activeTask.id, activeOffer.coTaskerId));
+      showToast(t('messages.toast_offer_accepted'), 'success');
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Failed to accept offer', 'error');
+    }
   };
 
   // Helper to find username by ID
   const getUserName = (id: string) => {
     if (id === currentUser.id) return t('messages.you');
-    return MOCK_USERS.find((u) => u.id === id)?.name || t('messages.user');
+    return state.users.find((u) => u.id === id)?.name || t('messages.user');
   };
 
   return (
@@ -259,7 +396,7 @@ export function MessagesPage() {
             activeConversations.length > 0 ? (
               activeConversations.map((c) => {
                 const isSelected = selectedId === c.id;
-                const participant = MOCK_USERS.find((u) => u.id === c.participantIds.find((id) => id !== currentUser.id));
+                const participant = state.users.find((u) => u.id === c.participantIds.find((id) => id !== currentUser.id));
                 const task = state.tasks.find((t) => t.id === c.taskId);
                 
                 return (
@@ -319,7 +456,7 @@ export function MessagesPage() {
             pendingRequests.length > 0 ? (
               pendingRequests.map((r) => {
                 const isSelected = selectedId === r.id;
-                const sender = MOCK_USERS.find((u) => u.id === r.senderId);
+                const sender = state.users.find((u) => u.id === r.senderId);
                 const task = state.tasks.find((t) => t.id === r.taskId);
                 
                 return (

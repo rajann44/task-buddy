@@ -7,6 +7,7 @@ import { ConfirmModal } from '../../components/ui/Modal';
 import { formatCurrency, formatDate, formatRelativeTime } from '../../utils/formatters';
 import { CATEGORY_ICONS } from '../../utils/constants';
 import { useState } from 'react';
+import { supabase } from '../../utils/supabaseClient';
 
 export function CoTaskerOffers() {
   const { currentUser } = useAuth();
@@ -22,11 +23,22 @@ export function CoTaskerOffers() {
   const handleWithdraw = async () => {
     if (!withdrawTarget) return;
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 400));
-    dispatch(withdrawOfferAction(withdrawTarget));
-    showToast('Offer withdrawn.', 'info');
-    setWithdrawTarget(null);
-    setIsLoading(false);
+    try {
+      const { error } = await supabase
+        .from('offers')
+        .update({ status: 'withdrawn' })
+        .eq('id', withdrawTarget);
+      if (error) throw error;
+
+      dispatch(withdrawOfferAction(withdrawTarget));
+      showToast('Offer withdrawn.', 'info');
+      setWithdrawTarget(null);
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Failed to withdraw offer', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

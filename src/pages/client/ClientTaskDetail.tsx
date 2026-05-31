@@ -14,6 +14,7 @@ import { formatDate, formatCurrency, generateId } from '../../utils/formatters';
 import { CATEGORY_ICONS } from '../../utils/constants';
 import type { Offer, User as UserType, Review } from '../../types';
 import { CoTaskerProfileDrawer } from '../../components/profile/CoTaskerProfileDrawer';
+import { supabase } from '../../utils/supabaseClient';
 
 export function ClientTaskDetail() {
   const { id } = useParams<{ id: string }>();
@@ -104,57 +105,146 @@ export function ClientTaskDetail() {
   const handleAcceptOffer = async () => {
     if (!acceptConfirm) return;
     setIsActionLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
-    dispatch(acceptOfferAction(acceptConfirm.id, task.id, acceptConfirm.coTaskerId));
-    posthog.capture('offer_accepted', {
-      offer_id: acceptConfirm.id,
-      task_id: task.id,
-      category: task.category,
-      offer_price: acceptConfirm.price,
-    });
-    dispatch(addNotificationAction({
-      id: generateId('notif'),
-      userId: acceptConfirm.coTaskerId,
-      type: 'offer_accepted',
-      title: 'Your offer was accepted!',
-      message: `Your offer for "${task.title}" has been accepted. Check your jobs to get started.`,
-      isRead: false,
-      createdAt: new Date().toISOString(),
-      linkTo: '/my-tasks?tab=tasker',
-    }));
-    showToast('Offer accepted! The task has been assigned.', 'success');
-    setAcceptConfirm(null);
-    setIsActionLoading(false);
+
+    try {
+      // 1. Update accepted offer status
+      const { error: acceptErr } = await supabase
+        .from('offers')
+        .update({ status: 'accepted' })
+        .eq('id', acceptConfirm.id);
+      if (acceptErr) throw acceptErr;
+
+      // 2. Reject other offers
+      const { error: rejectErr } = await supabase
+        .from('offers')
+        .update({ status: 'rejected' })
+        .eq('task_id', task.id)
+        .neq('id', acceptConfirm.id);
+      if (rejectErr) throw rejectErr;
+
+      // 3. Update task
+      const { error: taskErr } = await supabase
+        .from('tasks')
+        .update({ status: 'assigned', assigned_cotasker_id: acceptConfirm.coTaskerId })
+        .eq('id', task.id);
+      if (taskErr) throw taskErr;
+
+      // 4. Record wallet transaction
+      const txId = generateId('wallet');
+      const { error: walletErr } = await supabase
+        .from('wallet_transactions')
+        .insert({
+          id: txId,
+          task_id: task.id,
+          client_id: currentUser!.id,
+          cotasker_id: acceptConfirm.coTaskerId,
+          amount: acceptConfirm.price,
+          status: 'reserved',
+          created_at: new Date().toISOString()
+        });
+      if (walletErr) throw walletErr;
+
+      // 5. Send notification to CoTasker
+      const newNotif = {
+        id: generateId('notif'),
+        userId: acceptConfirm.coTaskerId,
+        type: 'offer_accepted' as const,
+        title: 'Your offer was accepted!',
+        message: `Your offer for "${task.title}" has been accepted. Check your jobs to get started.`,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        linkTo: '/my-tasks?tab=tasker',
+      };
+
+      await supabase
+        .from('notifications')
+        .insert({
+          id: newNotif.id,
+          user_id: newNotif.userId,
+          type: newNotif.type,
+          title: newNotif.title,
+          message: newNotif.message,
+          is_read: newNotif.isRead,
+          created_at: newNotif.createdAt,
+          link_to: newNotif.linkTo
+        });
+
+      dispatch(acceptOfferAction(acceptConfirm.id, task.id, acceptConfirm.coTaskerId));
+      dispatch(addNotificationAction(newNotif));
+
+      posthog.capture('offer_accepted', {
+        offer_id: acceptConfirm.id,
+        task_id: task.id,
+        category: task.category,
+        offer_price: acceptConfirm.price,
+      });
+
+      showToast('Offer accepted! The task has been assigned.', 'success');
+      setAcceptConfirm(null);
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Failed to accept offer', 'error');
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
   const handleCancelTask = async () => {
     setIsActionLoading(true);
-    await new Promise((r) => setTimeout(r, 400));
-    dispatch({ type: 'CANCEL_TASK', payload: { taskId: task.id } });
-    posthog.capture('task_cancelled', {
-      task_id: task.id,
-      category: task.category,
-      status_at_cancel: task.status,
-    });
-    showToast('Task has been cancelled.', 'info');
-    setCancelConfirm(false);
-    setIsActionLoading(false);
-    navigate('/my-tasks');
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ status: 'cancelled' })
+        .eq('id', task.id);
+      if (error) throw error;
+
+      dispatch({ type: 'CANCEL_TASK', payload: { taskId: task.id } });
+      posthog.capture('task_cancelled', {
+        task_id: task.id,
+        category: task.category,
+        status_at_cancel: task.status,
+      });
+      showToast('Task has been cancelled.', 'info');
+      setCancelConfirm(false);
+      navigate('/my-tasks');
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Failed to cancel task', 'error');
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
   const handleMarkComplete = async () => {
     setIsActionLoading(true);
-    await new Promise((r) => setTimeout(r, 500));
-    dispatch(updateTaskStatusAction(task.id, 'completed'));
-    posthog.capture('task_completed', {
-      task_id: task.id,
-      category: task.category,
-      accepted_offer_price: acceptedOffer?.price,
-    });
-    showToast('Task marked as complete!', 'success');
-    setCompleteConfirm(false);
-    setIsActionLoading(false);
-    setShowReviewModal(true);
+    try {
+      const { error: taskErr } = await supabase
+        .from('tasks')
+        .update({ status: 'completed' })
+        .eq('id', task.id);
+      if (taskErr) throw taskErr;
+
+      // Update wallet transactions to released
+      await supabase
+        .from('wallet_transactions')
+        .update({ status: 'released' })
+        .eq('task_id', task.id);
+
+      dispatch(updateTaskStatusAction(task.id, 'completed'));
+      posthog.capture('task_completed', {
+        task_id: task.id,
+        category: task.category,
+        accepted_offer_price: acceptedOffer?.price,
+      });
+      showToast('Task marked as complete!', 'success');
+      setCompleteConfirm(false);
+      setShowReviewModal(true);
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Failed to complete task', 'error');
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
   const handleSubmitReview = async () => {
@@ -163,7 +253,6 @@ export function ClientTaskDetail() {
       return;
     }
     setIsActionLoading(true);
-    await new Promise((r) => setTimeout(r, 400));
     const review: Review = {
       id: generateId('review'),
       taskId: task.id,
@@ -173,16 +262,36 @@ export function ClientTaskDetail() {
       comment: reviewComment.trim(),
       createdAt: new Date().toISOString(),
     };
-    dispatch(addReviewAction(review));
-    posthog.capture('review_submitted', {
-      review_id: review.id,
-      task_id: task.id,
-      category: task.category,
-      rating: reviewRating,
-    });
-    showToast('Review submitted! Thank you.', 'success');
-    setShowReviewModal(false);
-    setIsActionLoading(false);
+
+    try {
+      const { error } = await supabase
+        .from('reviews')
+        .insert({
+          id: review.id,
+          task_id: review.taskId,
+          from_user_id: review.fromUserId,
+          to_user_id: review.toUserId,
+          rating: review.rating,
+          comment: review.comment,
+          created_at: review.createdAt
+        });
+      if (error) throw error;
+
+      dispatch(addReviewAction(review));
+      posthog.capture('review_submitted', {
+        review_id: review.id,
+        task_id: task.id,
+        category: task.category,
+        rating: reviewRating,
+      });
+      showToast('Review submitted! Thank you.', 'success');
+      setShowReviewModal(false);
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Failed to submit review', 'error');
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -191,21 +300,38 @@ export function ClientTaskDetail() {
       return;
     }
     setIsActionLoading(true);
-    await new Promise((r) => setTimeout(r, 500));
-    dispatch({
-      type: 'UPDATE_TASK',
-      payload: {
-        id: task.id,
-        title: editTitle.trim(),
-        description: editDescription.trim(),
-        budget: editBudget,
-        date: editDate,
-        moderationStatus: 'pending'
-      }
-    });
-    showToast('Task updated successfully! It has been submitted for moderation review.', 'success');
-    setShowEditModal(false);
-    setIsActionLoading(false);
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({
+          title: editTitle.trim(),
+          description: editDescription.trim(),
+          budget: editBudget,
+          date: editDate,
+          moderation_status: 'pending'
+        })
+        .eq('id', task.id);
+      if (error) throw error;
+
+      dispatch({
+        type: 'UPDATE_TASK',
+        payload: {
+          id: task.id,
+          title: editTitle.trim(),
+          description: editDescription.trim(),
+          budget: editBudget,
+          date: editDate,
+          moderationStatus: 'pending'
+        }
+      });
+      showToast('Task updated successfully! It has been submitted for moderation review.', 'success');
+      setShowEditModal(false);
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Failed to update task', 'error');
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
   const canCancel = task.status === 'open' || task.status === 'receiving_offers';
