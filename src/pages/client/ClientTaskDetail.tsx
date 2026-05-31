@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, MapPin, Calendar, CheckCircle, X, Star, Wallet, User } from 'lucide-react';
+import posthog from '../../utils/posthogClient';
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext, acceptOfferAction, updateTaskStatusAction, addReviewAction, addNotificationAction, createConversationAction, sendChatMessageAction } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
@@ -105,6 +106,12 @@ export function ClientTaskDetail() {
     setIsActionLoading(true);
     await new Promise((r) => setTimeout(r, 600));
     dispatch(acceptOfferAction(acceptConfirm.id, task.id, acceptConfirm.coTaskerId));
+    posthog.capture('offer_accepted', {
+      offer_id: acceptConfirm.id,
+      task_id: task.id,
+      category: task.category,
+      offer_price: acceptConfirm.price,
+    });
     dispatch(addNotificationAction({
       id: generateId('notif'),
       userId: acceptConfirm.coTaskerId,
@@ -124,6 +131,11 @@ export function ClientTaskDetail() {
     setIsActionLoading(true);
     await new Promise((r) => setTimeout(r, 400));
     dispatch({ type: 'CANCEL_TASK', payload: { taskId: task.id } });
+    posthog.capture('task_cancelled', {
+      task_id: task.id,
+      category: task.category,
+      status_at_cancel: task.status,
+    });
     showToast('Task has been cancelled.', 'info');
     setCancelConfirm(false);
     setIsActionLoading(false);
@@ -134,6 +146,11 @@ export function ClientTaskDetail() {
     setIsActionLoading(true);
     await new Promise((r) => setTimeout(r, 500));
     dispatch(updateTaskStatusAction(task.id, 'completed'));
+    posthog.capture('task_completed', {
+      task_id: task.id,
+      category: task.category,
+      accepted_offer_price: acceptedOffer?.price,
+    });
     showToast('Task marked as complete!', 'success');
     setCompleteConfirm(false);
     setIsActionLoading(false);
@@ -157,6 +174,12 @@ export function ClientTaskDetail() {
       createdAt: new Date().toISOString(),
     };
     dispatch(addReviewAction(review));
+    posthog.capture('review_submitted', {
+      review_id: review.id,
+      task_id: task.id,
+      category: task.category,
+      rating: reviewRating,
+    });
     showToast('Review submitted! Thank you.', 'success');
     setShowReviewModal(false);
     setIsActionLoading(false);

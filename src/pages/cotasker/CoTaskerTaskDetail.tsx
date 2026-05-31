@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, MapPin, Calendar, DollarSign, User, Wallet, Users, MessageSquare, HelpCircle } from 'lucide-react';
+import posthog from '../../utils/posthogClient';
 import { useAuth } from '../../context/AuthContext';
 import {
   useAppContext,
@@ -121,6 +122,13 @@ export function CoTaskerTaskDetail() {
       createdAt: new Date().toISOString(),
     };
     dispatch(createOfferAction(newOffer));
+    posthog.capture('offer_submitted', {
+      offer_id: newOffer.id,
+      task_id: task.id,
+      category: task.category,
+      price: data.price,
+      estimated_hours: data.estimatedHours,
+    });
 
     // Auto-create chat conversation for direct offer submission
     const existingConv = state.conversations.find(
@@ -169,6 +177,11 @@ export function CoTaskerTaskDetail() {
     setIsLoading(true);
     await new Promise((r) => setTimeout(r, 400));
     dispatch(withdrawOfferAction(myOffer.id));
+    posthog.capture('offer_withdrawn', {
+      offer_id: myOffer.id,
+      task_id: task.id,
+      category: task.category,
+    });
     showToast('Offer withdrawn.', 'info');
     setWithdrawConfirm(false);
     setIsLoading(false);

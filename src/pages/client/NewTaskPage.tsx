@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Calendar, Clock, MapPin, Plus, X, 
+import {
+  ArrowLeft, Calendar, Clock, MapPin, Plus, X,
   Check, FileText, DollarSign, Image as ImageIcon, Sparkles,
   HelpCircle, MoreHorizontal, Search, Wallet
 } from 'lucide-react';
@@ -15,6 +15,7 @@ import { Modal } from '../../components/ui/Modal';
 import { generateId, formatCurrency, formatDate } from '../../utils/formatters';
 import { useTranslation } from '../../context/LanguageContext';
 import type { Task, TaskCategory } from '../../types';
+import posthog from '../../utils/posthogClient';
 
 const PRESET_IMAGES = [
   { label: 'Cleaning', url: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600' },
@@ -184,6 +185,15 @@ export function NewTaskPage() {
     };
 
     dispatch(createTaskAction(newTask));
+    posthog.capture('task_posted', {
+      task_id: newTask.id,
+      category: newTask.category,
+      task_type: newTask.taskType,
+      budget_type: newTask.budgetType,
+      budget: newTask.budget,
+      location: newTask.location,
+      schedule_type: form.scheduleType,
+    });
     showToast(t('new_task.post_success') || 'Task posted successfully! It will be visible in the marketplace once approved by moderation.', 'success');
     setIsLoading(false);
     navigate(`/tasks/${newTask.id}`);

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Star, MapPin, Clock, CheckCircle, Calendar, Briefcase, 
-  Tag, ShieldCheck, Languages, Truck, Edit, Plus, Trash2, X, Save 
+import {
+  ArrowLeft, Star, MapPin, Clock, CheckCircle, Calendar, Briefcase,
+  Tag, ShieldCheck, Languages, Truck, Edit, Plus, Trash2, X, Save
 } from 'lucide-react';
+import posthog from '../../utils/posthogClient';
 import { profileService } from '../../services/profileService';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -113,9 +114,14 @@ export function ProfilePage() {
         });
         setClientProfile(updated);
       }
+      posthog.capture('profile_updated', {
+        role: user.role,
+        has_bio: !!editBio.trim(),
+      });
       setIsEditing(false);
     } catch (err) {
       console.error(err);
+      posthog.captureException(err);
     } finally {
       setIsLoading(false);
     }

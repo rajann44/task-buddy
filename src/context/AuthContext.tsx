@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import type { User, UserRole } from '../types';
 import { supabase } from '../utils/supabaseClient';
 import { useToast } from './ToastContext';
+import posthog from '../utils/posthogClient';
 
 interface AuthContextValue {
   currentUser: User | null;
@@ -125,10 +126,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             throw new Error('This account has been disabled by an administrator.');
           }
           setCurrentUser(profile);
+          posthog.identify(profile.id, { email: profile.email, name: profile.name, role: profile.role });
+          posthog.capture('account_logged_in', { role: profile.role });
         } else {
           throw new Error('User profile could not be loaded.');
         }
       }
+    } catch (err) {
+      posthog.captureException(err);
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -155,6 +161,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const profile = await fetchUserProfile(data.user.id);
         if (profile) {
           setCurrentUser(profile);
+          posthog.identify(profile.id, { email: profile.email, name: profile.name, role: profile.role });
+          posthog.capture('account_signed_up', { role: profile.role });
         } else {
           const newProfile: User = {
             id: data.user.id,
@@ -167,8 +175,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             password: '',
           };
           setCurrentUser(newProfile);
+          posthog.identify(newProfile.id, { email: newProfile.email, name: newProfile.name, role: newProfile.role });
+          posthog.capture('account_signed_up', { role: 'client' });
         }
       }
+    } catch (err) {
+      posthog.captureException(err);
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -179,6 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await supabase.auth.signOut();
       setCurrentUser(null);
+      posthog.reset();
     } finally {
       setIsLoading(false);
     }

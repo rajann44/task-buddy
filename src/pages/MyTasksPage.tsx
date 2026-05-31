@@ -7,6 +7,7 @@ import { StatusBadge } from '../components/ui/Badge';
 import { formatCurrency, formatDate, formatRelativeTime } from '../utils/formatters';
 import { CATEGORY_ICONS } from '../utils/constants';
 import { useTranslation } from '../context/LanguageContext';
+import posthog from '../utils/posthogClient';
 
 export function MyTasksPage() {
   const { currentUser, updateCurrentUser } = useAuth();
@@ -27,6 +28,9 @@ export function MyTasksPage() {
     setIsSubmitting(true);
     await new Promise((r) => setTimeout(r, 600));
     dispatch(applyCoTaskerAction(currentUser.id));
+    posthog.capture('cotasker_application_submitted', {
+      hourly_rate: Number(rate),
+    });
     updateCurrentUser({ coTaskerStatus: 'pending' });
     setIsSubmitting(false);
   };
