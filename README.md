@@ -29,6 +29,7 @@ Dopzy is a premium, state-of-the-art service marketplace connecting clients with
   <img src="https://img.shields.io/badge/Posthog-000000?style=for-the-badge&logo=posthog&logoColor=white" alt="PostHog" />
   <img src="https://img.shields.io/badge/Sentry-362D59?style=for-the-badge&logo=sentry&logoColor=white" alt="Sentry" />
   <img src="https://img.shields.io/badge/Cloudflare-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Cloudflare" />
+  <img src="https://img.shields.io/badge/Upstash-00E5A3?style=for-the-badge&logo=upstash&logoColor=white" alt="Upstash" />
 </p>
 
 * **Core**: React 19, TypeScript, Vite.
@@ -37,6 +38,9 @@ Dopzy is a premium, state-of-the-art service marketplace connecting clients with
   * Full integration with Supabase Auth for secure logins, sign-ups, and session management.
   * Real-time sync of user profiles and states via PostgreSQL schemas, custom types, indexes, and automated triggers.
   * Row Level Security (RLS) policies protecting database read/write actions.
+* **Rate Limiting & Task Reminders (Upstash)**:
+  * **Upstash Redis**: Integrated client-side REST rate limiter to throttle API requests.
+  * **Upstash QStash**: Serverless message scheduler handling background task reminders.
 * **Product Analytics (PostHog)**:
   * Live user identification and custom event tracking.
   * Captures core funnel flows (e.g. posting tasks, placing offers, task completions) for insight analysis.
@@ -56,6 +60,10 @@ VITE_SUPABASE_ANON_KEY=your-anon-key-here
 VITE_POSTHOG_KEY=your-posthog-project-token
 VITE_POSTHOG_HOST=https://us.i.posthog.com # or https://eu.i.posthog.com
 VITE_SENTRY_DSN=your-sentry-dsn-url
+VITE_UPSTASH_REDIS_REST_URL=your-upstash-redis-url
+VITE_UPSTASH_REDIS_REST_TOKEN=your-upstash-redis-token
+VITE_QSTASH_URL=your-qstash-url-here
+VITE_QSTASH_TOKEN=your-qstash-token-here
 ```
 
 ### 2. Database Seeding
@@ -90,6 +98,28 @@ To ensure the production build connects to your backend services successfully, a
 | `VITE_PUBLIC_POSTHOG_PROJECT_TOKEN` | Backup variable for PostHog Token | Text |
 | `VITE_PUBLIC_POSTHOG_HOST` | Backup variable for PostHog Host | Text |
 | `SENTRY_AUTH_TOKEN` | Sentry integration authorization token | Secret |
+| `VITE_UPSTASH_REDIS_REST_URL` | Upstash Redis connection REST URL | Text |
+| `VITE_UPSTASH_REDIS_REST_TOKEN` | Upstash Redis connection REST Token | Text |
+| `VITE_QSTASH_URL` | Upstash QStash REST URL | Text |
+| `VITE_QSTASH_TOKEN` | Upstash QStash publish token | Text |
+
+---
+
+## ⚡ Backend Tasks (Supabase Edge Functions)
+
+Dopzy uses Supabase Edge Functions to securely process background tasks and webhooks (such as delayed task reminders from QStash).
+
+### 1. Set Function Secrets
+To allow the Edge Function to authenticate incoming webhook requests from QStash, set the cryptographic signing keys as secrets on Supabase:
+```bash
+npx supabase secrets set QSTASH_CURRENT_SIGNING_KEY="your_qstash_current_signing_key" QSTASH_NEXT_SIGNING_KEY="your_qstash_next_signing_key"
+```
+
+### 2. Deploy Functions
+Deploy the Edge Functions using the Supabase CLI:
+```bash
+npx supabase functions deploy task-reminder
+```
 
 ---
 
