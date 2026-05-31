@@ -45,7 +45,7 @@ export function OfferForm({ taskId: _taskId, coTaskerId: _coTaskerId, existingOf
           label="Your Price (€)"
           type="number"
           min="1"
-          step="5"
+          step="1"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           error={errors.price}
