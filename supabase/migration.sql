@@ -265,16 +265,10 @@ create policy "Allow co-taskers to update own offers" on public.offers
   for update using (auth.uid() = cotasker_id);
 
 -- Notifications policies
-create policy "Allow private notifications read" on public.notifications 
-  for select using (auth.uid() = user_id);
+create policy "Allow private notifications read and update" on public.notifications 
+  for select, update, delete using (auth.uid() = user_id);
 
-create policy "Allow private notifications update" on public.notifications 
-  for update using (auth.uid() = user_id);
-
-create policy "Allow private notifications delete" on public.notifications 
-  for delete using (auth.uid() = user_id);
-
-create policy "Allow authenticated users to insert notifications" on public.notifications 
+create policy "Allow authenticated users to create notifications" on public.notifications
   for insert with check (auth.role() = 'authenticated');
 
 -- Chat messages policies
@@ -284,27 +278,36 @@ create policy "Allow message access to conversation participants" on public.chat
       select 1 from public.conversations 
       where id = conversation_id 
       and participant_ids @> jsonb_build_array(auth.uid()::text)
+    )
   );
 
 -- Conversations policies
-create policy "Allow participants select on conversations" on public.conversations
-  for select using (participant_ids @> jsonb_build_array(auth.uid()::text));
+create policy "Allow conversation access to participants" on public.conversations
+  for all using (participant_ids @> jsonb_build_array(auth.uid()::text));
 
-create policy "Allow participants insert on conversations" on public.conversations
-  for insert with check (participant_ids @> jsonb_build_array(auth.uid()::text));
-
-create policy "Allow participants update on conversations" on public.conversations
-  for update using (participant_ids @> jsonb_build_array(auth.uid()::text));
+create policy "Allow authenticated users to start conversations" on public.conversations
+  for insert with check (auth.role() = 'authenticated');
 
 -- Chat requests policies
-create policy "Allow participants select on chat_requests" on public.chat_requests
-  for select using (auth.uid() = sender_id or auth.uid() = receiver_id);
+create policy "Allow chat request access to sender and receiver" on public.chat_requests
+  for all using (auth.uid() = sender_id or auth.uid() = receiver_id);
 
-create policy "Allow sender insert on chat_requests" on public.chat_requests
-  for insert with check (auth.uid() = sender_id);
+create policy "Allow authenticated users to create chat requests" on public.chat_requests
+  for insert with check (auth.role() = 'authenticated');
 
-create policy "Allow receiver update on chat_requests" on public.chat_requests
-  for update using (auth.uid() = receiver_id);
+-- Reviews policies
+create policy "Allow public read access to reviews" on public.reviews
+  for select using (true);
+
+create policy "Allow users to create reviews from themselves" on public.reviews
+  for insert with check (auth.uid() = from_user_id);
+
+-- Wallet transactions policies
+create policy "Allow wallet transaction access to client and cotasker" on public.wallet_transactions
+  for all using (auth.uid() = client_id or auth.uid() = cotasker_id);
+
+create policy "Allow client to create wallet transactions" on public.wallet_transactions
+  for insert with check (auth.role() = 'authenticated');
 
 -- ─── 6. SCHEMA PRIVILEGES GRANTS ─────────────────────────────────────────────
 -- Grant schema usage and basic permissions to API roles (anon and authenticated)

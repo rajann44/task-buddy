@@ -80,21 +80,34 @@ export function CoTaskerTaskDetail() {
     setIsSubmittingQuestion(true);
 
     try {
-      const { data: reqData, error } = await supabase
+      // 1. Insert chat request
+      const { data: dbRequest, error: reqErr } = await supabase
         .from('chat_requests')
         .insert({
           task_id: task.id,
           sender_id: currentUser!.id,
           receiver_id: task.clientId,
           question: questionText.trim(),
-          status: 'pending'
+          status: 'pending',
+          created_at: new Date().toISOString()
         })
         .select('id, created_at')
         .single();
 
-      if (error) throw error;
+      if (reqErr) throw reqErr;
 
-      const { data: notifData, error: notifErr } = await supabase
+      const newRequest = {
+        id: dbRequest.id,
+        taskId: task.id,
+        senderId: currentUser!.id,
+        receiverId: task.clientId,
+        question: questionText.trim(),
+        status: 'pending' as const,
+        createdAt: dbRequest.created_at
+      };
+
+      // 2. Insert notification
+      const { data: dbNotif, error: notifErr } = await supabase
         .from('notifications')
         .insert({
           user_id: task.clientId,
@@ -102,6 +115,7 @@ export function CoTaskerTaskDetail() {
           title: 'New task inquiry',
           message: `${currentUser!.name} sent a question about your task "${task.title}".`,
           is_read: false,
+          created_at: new Date().toISOString(),
           link_to: '/messages'
         })
         .select('id, created_at')
@@ -109,25 +123,15 @@ export function CoTaskerTaskDetail() {
 
       if (notifErr) throw notifErr;
 
-      const newRequest = {
-        id: reqData.id,
-        taskId: task.id,
-        senderId: currentUser!.id,
-        receiverId: task.clientId,
-        question: questionText.trim(),
-        status: 'pending' as const,
-        createdAt: reqData.created_at
-      };
-
       dispatch(createChatRequestAction(newRequest));
       dispatch(addNotificationAction({
-        id: notifData.id,
+        id: dbNotif.id,
         userId: task.clientId,
         type: 'new_offer',
         title: 'New task inquiry',
         message: `${currentUser!.name} sent a question about your task "${task.title}".`,
         isRead: false,
-        createdAt: notifData.created_at,
+        createdAt: dbNotif.created_at,
         linkTo: '/messages',
       }));
 
@@ -147,7 +151,7 @@ export function CoTaskerTaskDetail() {
 
     try {
       // 1. Insert Offer
-      const { data: offerData, error: offerErr } = await supabase
+      const { data: dbOffer, error: offerErr } = await supabase
         .from('offers')
         .insert({
           task_id: task.id,
@@ -155,21 +159,22 @@ export function CoTaskerTaskDetail() {
           price: data.price,
           message: data.message,
           estimated_hours: data.estimatedHours,
-          status: 'pending'
+          status: 'pending',
+          created_at: new Date().toISOString()
         })
         .select('id, created_at')
         .single();
       if (offerErr) throw offerErr;
 
       const newOffer: Offer = {
-        id: offerData.id,
+        id: dbOffer.id,
         taskId: task.id,
         coTaskerId: currentUser!.id,
         price: data.price,
         message: data.message,
         estimatedHours: data.estimatedHours,
         status: 'pending',
-        createdAt: offerData.created_at,
+        createdAt: dbOffer.created_at,
       };
 
       // 2. Update Task Status to receiving_offers if it's open
@@ -185,10 +190,10 @@ export function CoTaskerTaskDetail() {
       const existingConv = state.conversations.find(
         (c) => c.taskId === task.id && c.participantIds.includes(currentUser!.id)
       );
-      let convId: string;
+      let activeConvId: string;
       
       if (!existingConv) {
-        const { data: convData, error: convErr } = await supabase
+        const { data: dbConv, error: convErr } = await supabase
           .from('conversations')
           .insert({
             participant_ids: [currentUser!.id, task.clientId],
@@ -200,10 +205,10 @@ export function CoTaskerTaskDetail() {
           .select('id')
           .single();
         if (convErr) throw convErr;
-        convId = convData.id;
+        activeConvId = dbConv.id;
 
         dispatch(createConversationAction({
-          id: convId,
+          id: dbConv.id,
           participantIds: [currentUser!.id, task.clientId],
           lastMessage: data.message,
           lastMessageAt: new Date().toISOString(),
@@ -211,38 +216,39 @@ export function CoTaskerTaskDetail() {
           taskId: task.id
         }));
       } else {
-        convId = existingConv.id;
+        activeConvId = existingConv.id;
         await supabase
           .from('conversations')
           .update({
             last_message: data.message,
             last_message_at: new Date().toISOString()
           })
-          .eq('id', convId);
+          .eq('id', activeConvId);
       }
 
       // 3. Send Message
-      const { data: msgData, error: msgErr } = await supabase
+      const { data: dbMsg, error: msgErr } = await supabase
         .from('chat_messages')
         .insert({
-          conversation_id: convId,
+          conversation_id: activeConvId,
           sender_id: currentUser!.id,
-          text: `Offer Submitted: ${formatCurrency(data.price)}. "${data.message}"`
+          text: `Offer Submitted: ${formatCurrency(data.price)}. "${data.message}"`,
+          created_at: new Date().toISOString()
         })
         .select('id, created_at')
         .single();
       if (msgErr) throw msgErr;
 
       const newMessage = {
-        id: msgData.id,
-        conversationId: convId,
+        id: dbMsg.id,
+        conversationId: activeConvId,
         senderId: currentUser!.id,
         text: `Offer Submitted: ${formatCurrency(data.price)}. "${data.message}"`,
-        createdAt: msgData.created_at
+        createdAt: dbMsg.created_at
       };
 
       // 4. Create Notification
-      const { data: notifData, error: notifErr } = await supabase
+      const { data: dbNotif, error: notifErr } = await supabase
         .from('notifications')
         .insert({
           user_id: task.clientId,
@@ -250,6 +256,7 @@ export function CoTaskerTaskDetail() {
           title: 'New offer received',
           message: `${currentUser!.name} sent an offer of ${formatCurrency(data.price)} for your task "${task.title}".`,
           is_read: false,
+          created_at: new Date().toISOString(),
           link_to: `/tasks/${task.id}`
         })
         .select('id, created_at')
@@ -257,13 +264,13 @@ export function CoTaskerTaskDetail() {
       if (notifErr) throw notifErr;
 
       const newNotif = {
-        id: notifData.id,
+        id: dbNotif.id,
         userId: task.clientId,
         type: 'new_offer' as const,
         title: 'New offer received',
         message: `${currentUser!.name} sent an offer of ${formatCurrency(data.price)} for your task "${task.title}".`,
         isRead: false,
-        createdAt: notifData.created_at,
+        createdAt: dbNotif.created_at,
         linkTo: `/tasks/${task.id}`,
       };
 

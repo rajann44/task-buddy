@@ -50,9 +50,6 @@ export function formatRating(rating: number): string {
 }
 
 export function generateId(prefix: string = 'id'): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
