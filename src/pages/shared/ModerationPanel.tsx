@@ -14,6 +14,7 @@ import { useTranslation } from '../../context/LanguageContext';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { Check, X, Shield, FileText, UserCheck, Trash2, Search } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { supabase } from '../../utils/supabaseClient';
 
 export function ModerationPanel() {
   const { state, dispatch } = useAppContext();
@@ -42,50 +43,125 @@ export function ModerationPanel() {
   });
 
   // Action handlers
-  const handleApproveUser = (userId: string) => {
-    dispatch(approveCoTaskerAction(userId));
-    showToast('Co-Tasker application approved successfully!', 'success');
-  };
-
-  const handleRejectUser = (userId: string) => {
-    dispatch(rejectCoTaskerAction(userId));
-    showToast('Co-Tasker application declined.', 'info');
-  };
-
-  const handleApproveTask = (taskId: string) => {
-    dispatch(approveTaskAction(taskId));
-    showToast('Task approved and listed in the marketplace!', 'success');
-  };
-
-  const handleRejectTask = (taskId: string) => {
-    dispatch(rejectTaskAction(taskId));
-    showToast('Task rejected from the marketplace.', 'info');
-  };
-
-  const handleToggleDisableUser = (userId: string, currentDisabled: boolean) => {
-    if (currentDisabled) {
-      dispatch(enableUserAction(userId));
-      showToast('User account has been enabled.', 'success');
-    } else {
-      dispatch(disableUserAction(userId));
-      showToast('User account has been disabled and logged out.', 'warning');
+  const handleApproveUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ co_tasker_status: 'approved', role: 'cotasker' })
+        .eq('id', userId);
+      if (error) throw error;
+      dispatch(approveCoTaskerAction(userId));
+      showToast('Co-Tasker application approved successfully!', 'success');
+    } catch (err: any) {
+      console.error('Failed to approve user:', err);
+      showToast(err.message || 'Failed to approve user in database.', 'error');
     }
   };
 
-  const handleToggleCoTasker = (userId: string, isCoTasker: boolean) => {
-    dispatch(toggleUserCoTaskerAction(userId, !isCoTasker));
-    showToast(
-      isCoTasker 
-        ? 'Co-Tasker status revoked. User is now a regular client.' 
-        : 'User promoted to approved Co-Tasker status.', 
-      'success'
-    );
+  const handleRejectUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ co_tasker_status: 'rejected' })
+        .eq('id', userId);
+      if (error) throw error;
+      dispatch(rejectCoTaskerAction(userId));
+      showToast('Co-Tasker application declined.', 'info');
+    } catch (err: any) {
+      console.error('Failed to reject user:', err);
+      showToast(err.message || 'Failed to reject user in database.', 'error');
+    }
   };
 
-  const handleDeleteTask = (taskId: string) => {
+  const handleApproveTask = async (taskId: string) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ moderation_status: 'approved' })
+        .eq('id', taskId);
+      if (error) throw error;
+      dispatch(approveTaskAction(taskId));
+      showToast('Task approved and listed in the marketplace!', 'success');
+    } catch (err: any) {
+      console.error('Failed to approve task:', err);
+      showToast(err.message || 'Failed to approve task in database.', 'error');
+    }
+  };
+
+  const handleRejectTask = async (taskId: string) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ moderation_status: 'rejected' })
+        .eq('id', taskId);
+      if (error) throw error;
+      dispatch(rejectTaskAction(taskId));
+      showToast('Task rejected from the marketplace.', 'info');
+    } catch (err: any) {
+      console.error('Failed to reject task:', err);
+      showToast(err.message || 'Failed to reject task in database.', 'error');
+    }
+  };
+
+  const handleToggleDisableUser = async (userId: string, currentDisabled: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ is_disabled: !currentDisabled })
+        .eq('id', userId);
+      if (error) throw error;
+      
+      if (currentDisabled) {
+        dispatch(enableUserAction(userId));
+        showToast('User account has been enabled.', 'success');
+      } else {
+        dispatch(disableUserAction(userId));
+        showToast('User account has been disabled and logged out.', 'warning');
+      }
+    } catch (err: any) {
+      console.error('Failed to toggle user status:', err);
+      showToast(err.message || 'Failed to update user status in database.', 'error');
+    }
+  };
+
+  const handleToggleCoTasker = async (userId: string, isCoTasker: boolean) => {
+    try {
+      const nextRole = isCoTasker ? 'client' : 'cotasker';
+      const nextStatus = isCoTasker ? 'none' : 'approved';
+      const { error } = await supabase
+        .from('users')
+        .update({ role: nextRole, co_tasker_status: nextStatus })
+        .eq('id', userId);
+      if (error) throw error;
+
+      dispatch(toggleUserCoTaskerAction(userId, !isCoTasker));
+      showToast(
+        isCoTasker 
+          ? 'Co-Tasker status revoked. User is now a regular client.' 
+          : 'User promoted to approved Co-Tasker status.', 
+        'success'
+      );
+    } catch (err: any) {
+      console.error('Failed to toggle co-tasker role:', err);
+      showToast(err.message || 'Failed to update user role in database.', 'error');
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
     if (window.confirm('Are you sure you want to permanently delete this task listing?')) {
-      dispatch(deleteTaskAction(taskId));
-      showToast('Task listing deleted permanently.', 'error');
+      try {
+        const { error } = await supabase
+          .from('tasks')
+          .delete()
+          .eq('id', taskId);
+        if (error) throw error;
+
+        dispatch(deleteTaskAction(taskId));
+        showToast('Task listing deleted permanently.', 'error');
+      } catch (err: any) {
+        console.error('Failed to delete task:', err);
+        showToast(err.message || 'Failed to delete task from database.', 'error');
+      }
     }
   };
 
