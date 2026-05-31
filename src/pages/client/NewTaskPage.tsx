@@ -261,6 +261,30 @@ export function NewTaskPage() {
     navigate(`/tasks/${newTask.id}`);
   };
 
+  const handleAutofillDemo = () => {
+    setForm({
+      title: 'Assemble IKEA Pax Wardrobe with sliding doors',
+      description: 'I need an experienced helper to assemble a standard IKEA Pax wardrobe (width 150cm, height 236cm) in my bedroom. All packages are delivered and inside the room. I have some basic tools but bringing a cordless screwdriver is recommended. Please help!',
+      category: 'Furniture Assembly',
+      taskType: 'in_person',
+      location: 'Berlin',
+      address: 'Friedrichstraße 12, 10117 Berlin',
+      mustHaves: [
+        'Must bring own tools (drill, level, rubber mallet)',
+        'Must have experience assembling IKEA Pax sliding doors',
+        'Must be careful not to scratch the wooden floor'
+      ],
+      imageUrl: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=600',
+      scheduleType: 'specific',
+      date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      time: '10:00',
+      budgetType: 'fixed',
+      budget: '120',
+    });
+    setStep(1);
+    showToast('Demo task data populated successfully!', 'info');
+  };
+
   const getStepStatus = (itemStep: number) => {
     if (step === itemStep) return 'active';
     if (step > itemStep) return 'completed';
@@ -270,7 +294,7 @@ export function NewTaskPage() {
   return (
     <div>
       {/* Header */}
-      <div className="page-topbar">
+      <div className="page-topbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
           <button onClick={() => navigate(-1)} className="btn btn-ghost btn-icon">
             <ArrowLeft size={20} />
@@ -282,6 +306,15 @@ export function NewTaskPage() {
             </p>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={handleAutofillDemo}
+          className="btn btn-outlined btn-sm"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: 'var(--color-primary-container)', color: 'var(--color-secondary)' }}
+        >
+          <Sparkles size={14} style={{ color: 'var(--color-primary)' }} />
+          Autofill Demo
+        </button>
       </div>
 
       <div className="page-inner">
